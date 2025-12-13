@@ -34,6 +34,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const saveTimeoutRef = useRef(null)
+  const isInitialLoadRef = useRef(true)
+  const previousDataRef = useRef({ teams: [], games: [] })
   
   // Загрузка данных из Google Sheets при старте
   useEffect(() => {
@@ -44,26 +46,54 @@ function App() {
         if (data.teams.length > 0 || data.games.length > 0) {
           setTeams(data.teams)
           setGames(data.games)
+          // Сохраняем загруженные данные как предыдущие
+          previousDataRef.current = {
+            teams: JSON.parse(JSON.stringify(data.teams)),
+            games: JSON.parse(JSON.stringify(data.games))
+          }
         } else if (config.IsDev) {
           // Если данных нет и режим разработки, используем дефолтные команды
           setTeams(DEFAULT_TEAMS)
+          previousDataRef.current = {
+            teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
+            games: []
+          }
         }
       } catch (error) {
         console.error('Ошибка загрузки данных:', error)
         if (config.IsDev) {
           setTeams(DEFAULT_TEAMS)
+          previousDataRef.current = {
+            teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
+            games: []
+          }
         }
       } finally {
         setIsLoading(false)
+        isInitialLoadRef.current = false
       }
     }
     
     loadData()
   }, [])
   
-  // Автосохранение при изменении teams или games
+  // Автосохранение при изменении teams или games (только если данные реально изменились)
   useEffect(() => {
-    if (isLoading) return
+    // Не сохраняем во время начальной загрузки
+    if (isLoading || isInitialLoadRef.current) return
+    
+    // Сравниваем текущие данные с предыдущими
+    const currentDataStr = JSON.stringify({ teams, games })
+    const previousDataStr = JSON.stringify(previousDataRef.current)
+    
+    // Если данные не изменились, не сохраняем
+    if (currentDataStr === previousDataStr) return
+    
+    // Обновляем предыдущие данные
+    previousDataRef.current = {
+      teams: JSON.parse(JSON.stringify(teams)),
+      games: JSON.parse(JSON.stringify(games))
+    }
     
     // Очищаем предыдущий таймер
     if (saveTimeoutRef.current) {

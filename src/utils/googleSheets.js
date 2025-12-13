@@ -8,20 +8,6 @@ const SPREADSHEET_ID = '155dQ0YN-WUNGcxRr_IxcJkN_v2gphA0s6c4uR1nExkg'
  */
 export async function loadDataFromSheets() {
   try {
-    // Сначала пытаемся загрузить из localStorage (если есть)
-    const localData = localStorage.getItem('hockey_tournament_data')
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData)
-        if (parsed.teams && parsed.games) {
-          console.log('Данные загружены из localStorage')
-          return { teams: parsed.teams, games: parsed.games }
-        }
-      } catch (e) {
-        console.warn('Ошибка парсинга данных из localStorage:', e)
-      }
-    }
-    
     // Используем публичный CSV экспорт
     const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`
     
@@ -105,19 +91,6 @@ export async function loadDataFromSheets() {
     return { teams, games }
   } catch (error) {
     console.error('Ошибка загрузки данных из Google Sheets:', error)
-    // Пытаемся загрузить из localStorage как резервный вариант
-    const localData = localStorage.getItem('hockey_tournament_data')
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData)
-        if (parsed.teams && parsed.games) {
-          console.log('Данные загружены из localStorage (резервный вариант)')
-          return { teams: parsed.teams, games: parsed.games }
-        }
-      } catch (e) {
-        console.warn('Ошибка парсинга данных из localStorage:', e)
-      }
-    }
     return { teams: [], games: [] }
   }
 }
@@ -152,12 +125,9 @@ export async function saveDataToSheets(teams, games) {
     // Инструкция в файле GOOGLE_SHEETS_SETUP.md
     const scriptUrl = `https://script.google.com/macros/s/AKfycbyDbDL7qtKt4ruL_A5KM75AeBcnvFS4MmEfM4OC_5uFXe6iZotxGhu7CZopm2x2Qzk-/exec`
     
-    // Сохраняем в localStorage в любом случае
-    localStorage.setItem('hockey_tournament_data', JSON.stringify(data))
-    
-    // Если URL не настроен, используем только localStorage
+    // Если URL не настроен
     if (scriptUrl.includes('YOUR_SCRIPT_ID')) {
-      console.log('Данные сохранены в localStorage. Для синхронизации с Google Sheets настройте Google Apps Script (см. GOOGLE_SHEETS_SETUP.md)')
+      console.log('Для синхронизации с Google Sheets настройте Google Apps Script (см. GOOGLE_SHEETS_SETUP.md)')
       return false
     }
     
@@ -187,7 +157,6 @@ export async function saveDataToSheets(teams, games) {
       console.log('2. Web App не переопубликован после изменений в скрипте')
       console.log('3. Проверьте, что в настройках Web App выбрано "Выполнять от имени: Меня"')
       console.log('4. Убедитесь, что скрипт обрабатывает JSON данные правильно')
-      console.log('Данные сохранены в localStorage.')
       return false
     }
   } catch (error) {
