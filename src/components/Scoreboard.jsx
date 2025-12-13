@@ -28,7 +28,8 @@ function Scoreboard({
       className="scoreboard-overlay" 
       onClick={onClose}
       style={{
-        background: `linear-gradient(to right, ${homeTeamColor} 0%, ${homeTeamColor} 50%, ${awayTeamColor} 50%, ${awayTeamColor} 100%)`
+        '--home-team-color': homeTeamColor,
+        '--away-team-color': awayTeamColor
       }}
     >
       <div className="scoreboard" onClick={(e) => e.stopPropagation()}>

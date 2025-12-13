@@ -1385,7 +1385,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: transparent; /* Градиент задается через inline style */
+  background: linear-gradient(to right, var(--home-team-color, #1e3c72) 0%, var(--home-team-color, #1e3c72) 50%, var(--away-team-color, #1e3c72) 50%, var(--away-team-color, #1e3c72) 100%);
   z-index: 10000;
   display: flex;
   align-items: center;
@@ -1624,15 +1624,26 @@
 }
 
 @media (max-width: 768px) {
+  .scoreboard-overlay {
+    background: linear-gradient(to bottom, var(--home-team-color, #1e3c72) 0%, var(--home-team-color, #1e3c72) 50%, var(--away-team-color, #1e3c72) 50%, var(--away-team-color, #1e3c72) 100%);
+  }
+
   .scoreboard-content {
     flex-direction: column;
-    padding: 2rem;
+    padding: 0;
+    gap: 0;
+    height: 100vh;
   }
 
   .scoreboard-team {
     width: 100%;
-    height: auto;
-    min-height: 300px;
+    height: 50vh;
+    min-height: 50vh;
+    flex-shrink: 0;
+  }
+
+  .scoreboard-team-away {
+    border-top: 4px solid #f44336;
   }
 
   .scoreboard-team-logo {
@@ -1675,15 +1686,31 @@
 
   .scoreboard-separator {
     min-width: auto;
-    width: 100%;
+    width: auto;
+    flex-direction: column;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
   }
 
   .scoreboard-vs {
-    font-size: 2rem;
+    font-size: 2.5rem;
+    text-align: center;
   }
 
   .scoreboard-game-type {
     font-size: 1rem;
+    text-align: center;
+    margin-top: 0.5rem;
   }
 }
 
