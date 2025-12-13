@@ -1314,7 +1314,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
+  background: transparent; /* Градиент задается через inline style */
   z-index: 10000;
   display: flex;
   align-items: center;
@@ -1325,7 +1325,7 @@
 .scoreboard {
   width: 100vw;
   height: 100vh;
-  background: #000;
+  background: transparent; /* Убираем черный фон */
   border-radius: 0;
   position: relative;
   display: flex;
@@ -1380,13 +1380,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 20px;
-  border: 4px solid;
+  border-radius: 0; /* Убираем радиус */
+  border: none; /* Убираем рамку */
   padding: 3rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: none; /* Убираем тень */
   box-sizing: border-box;
   overflow: hidden;
   min-width: 0;
+  background: transparent !important; /* Убираем градиент, заданный инлайн */
 }
 
 .scoreboard-team-logo {
@@ -1495,6 +1496,7 @@
   justify-content: center;
   gap: 1rem;
   min-width: 200px;
+  background: transparent; /* Убираем фон сепаратора */
 }
 
 .scoreboard-vs {

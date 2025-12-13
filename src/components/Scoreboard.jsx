@@ -14,7 +14,6 @@ function Scoreboard({
 }) {
   const gameTypeLabels = {
     regular: 'Основное время',
-    overtime: 'Овертайм',
     shootout: 'Буллиты'
   }
 
@@ -25,7 +24,13 @@ function Scoreboard({
   const currentAwayScore = parseInt(awayScore) || 0
 
   return (
-    <div className="scoreboard-overlay" onClick={onClose}>
+    <div 
+      className="scoreboard-overlay" 
+      onClick={onClose}
+      style={{
+        background: `linear-gradient(to right, ${homeTeamColor} 0%, ${homeTeamColor} 50%, ${awayTeamColor} 50%, ${awayTeamColor} 100%)`
+      }}
+    >
       <div className="scoreboard" onClick={(e) => e.stopPropagation()}>
         <button className="scoreboard-close" onClick={onClose}>
           ✕
@@ -35,7 +40,7 @@ function Scoreboard({
           <div 
             className="scoreboard-team scoreboard-team-home"
             style={{ 
-              background: `linear-gradient(135deg, ${homeTeamColor} 0%, ${homeTeamColor}dd 100%)`,
+              backgroundColor: 'transparent',
               borderColor: homeTeamColor
             }}
           >
@@ -82,7 +87,7 @@ function Scoreboard({
           <div 
             className="scoreboard-team scoreboard-team-away"
             style={{ 
-              background: `linear-gradient(135deg, ${awayTeamColor} 0%, ${awayTeamColor}dd 100%)`,
+              backgroundColor: 'transparent',
               borderColor: awayTeamColor
             }}
           >
