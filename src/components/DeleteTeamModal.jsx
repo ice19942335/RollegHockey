@@ -1,3 +1,5 @@
+import { useLanguage } from '../i18n/LanguageContext'
+
 function DeleteTeamModal({ 
   isOpen, 
   onClose, 
@@ -6,6 +8,8 @@ function DeleteTeamModal({
   relatedGames,
   teams
 }) {
+  const { t } = useLanguage()
+  
   if (!isOpen || !team) return null
 
   const getTeamName = (teamId) => {
@@ -14,19 +18,25 @@ function DeleteTeamModal({
   }
 
   const gameTypeLabels = {
-    regular: 'Основное время',
-    shootout: 'Буллиты'
+    regular: t('gameTypeRegular'),
+    shootout: t('gameTypeShootout')
+  }
+  
+  const getGamesWord = (count) => {
+    return count === 1 ? t('game') : t('games')
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h3>Удалить команду "{team.name}"?</h3>
+        <h3>{t('deleteTeamTitle', { name: team.name })}</h3>
         {relatedGames.length > 0 ? (
           <>
             <p>
-              Эта команда участвует в {relatedGames.length} {relatedGames.length === 1 ? 'игре' : 'играх'}. 
-              При удалении команды все связанные игры также будут удалены.
+              {t('deleteTeamWithGames', { 
+                count: relatedGames.length, 
+                gamesWord: getGamesWord(relatedGames.length) 
+              })}
             </p>
             <div style={{ 
               maxHeight: '300px', 
@@ -36,7 +46,7 @@ function DeleteTeamModal({
               background: 'rgba(0, 0, 0, 0.05)',
               borderRadius: '8px'
             }}>
-              <h4 style={{ marginBottom: '0.5rem', fontSize: '1rem' }}>Связанные игры:</h4>
+              <h4 style={{ marginBottom: '0.5rem', fontSize: '1rem' }}>{t('relatedGames')}</h4>
               <ul style={{ 
                 listStyle: 'none', 
                 padding: 0, 
@@ -60,7 +70,7 @@ function DeleteTeamModal({
                       <strong>{homeTeamName}</strong> {game.homeScore} - {game.awayScore} <strong>{awayTeamName}</strong>
                       <br />
                       <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                        {gameTypeLabels[game.gameType] || 'Основное время'} • {game.date}
+                        {gameTypeLabels[game.gameType] || t('gameTypeRegular')} • {game.date}
                       </span>
                     </li>
                   )
@@ -68,18 +78,18 @@ function DeleteTeamModal({
               </ul>
             </div>
             <p style={{ marginTop: '1rem', fontWeight: 'bold', color: '#c62828' }}>
-              Вы уверены, что хотите удалить команду и все связанные игры?
+              {t('deleteTeamWarning')}
             </p>
           </>
         ) : (
-          <p>Вы уверены, что хотите удалить эту команду?</p>
+          <p>{t('deleteTeamConfirm')}</p>
         )}
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>
-            Отмена
+            {t('cancel')}
           </button>
           <button className="btn-confirm" onClick={onConfirm}>
-            Удалить
+            {t('delete')}
           </button>
         </div>
       </div>

@@ -1,12 +1,14 @@
 import TeamLogo from './TeamLogo'
-
-const GAME_TYPE_LABELS = {
-  regular: 'Основное время',
-  overtime: 'Овертайм',
-  shootout: 'Буллиты'
-}
+import { useLanguage } from '../i18n/LanguageContext'
 
 function GameCard({ game, homeTeam, awayTeam, onDelete }) {
+  const { t } = useLanguage()
+  
+  const GAME_TYPE_LABELS = {
+    regular: t('gameTypeRegular'),
+    overtime: 'Овертайм', // Не используется, но оставлено для совместимости
+    shootout: t('gameTypeShootout')
+  }
   if (!homeTeam || !awayTeam) return null
 
   const homeTeamColor = homeTeam?.color || '#FFA000'

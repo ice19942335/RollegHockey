@@ -1,4 +1,5 @@
 import TeamLogo from './TeamLogo'
+import { useLanguage } from '../i18n/LanguageContext'
 
 function Scoreboard({ 
   homeTeam, 
@@ -12,9 +13,11 @@ function Scoreboard({
   onIncrementAwayScore,
   onDecrementAwayScore
 }) {
+  const { t } = useLanguage()
+  
   const gameTypeLabels = {
-    regular: 'Основное время',
-    shootout: 'Буллиты'
+    regular: t('gameTypeRegular'),
+    shootout: t('gameTypeShootout')
   }
 
   const homeTeamColor = homeTeam?.color || '#1e3c72'
@@ -34,7 +37,7 @@ function Scoreboard({
     >
       <div className="scoreboard" onClick={(e) => e.stopPropagation()}>
         <div className="scoreboard-top-bar">
-          <div className="scoreboard-game-type">{gameTypeLabels[gameType] || 'Основное время'}</div>
+          <div className="scoreboard-game-type">{gameTypeLabels[gameType] || t('gameTypeRegular')}</div>
           <button className="scoreboard-close" onClick={onClose}>
             ✕
           </button>
@@ -53,7 +56,7 @@ function Scoreboard({
                 <TeamLogo logo={homeTeam.logo} name={homeTeam.name} />
               )}
             </div>
-            <div className="scoreboard-team-name">{homeTeam?.name || 'Команда 1'}</div>
+            <div className="scoreboard-team-name">{homeTeam?.name || t('team1')}</div>
             <div className="scoreboard-score-controls">
               {currentHomeScore > 0 ? (
                 <button
@@ -99,7 +102,7 @@ function Scoreboard({
                 <TeamLogo logo={awayTeam.logo} name={awayTeam.name} />
               )}
             </div>
-            <div className="scoreboard-team-name">{awayTeam?.name || 'Команда 2'}</div>
+            <div className="scoreboard-team-name">{awayTeam?.name || t('team2')}</div>
             <div className="scoreboard-score-controls">
               {currentAwayScore > 0 ? (
                 <button

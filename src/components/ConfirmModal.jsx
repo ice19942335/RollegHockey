@@ -1,4 +1,7 @@
+import { useLanguage } from '../i18n/LanguageContext'
+
 function ConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
+  const { t } = useLanguage()
   if (!isOpen) return null
 
   return (
@@ -8,10 +11,10 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
         <p>{message}</p>
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>
-            Отмена
+            {t('cancel')}
           </button>
           <button className="btn-confirm" onClick={onConfirm}>
-            Подтвердить
+            {t('confirm')}
           </button>
         </div>
       </div>

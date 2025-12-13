@@ -1,3 +1,5 @@
+import { useLanguage } from '../i18n/LanguageContext'
+
 function GameForm({ 
   teams, 
   selectedHomeTeam, 
@@ -13,6 +15,8 @@ function GameForm({
   onAddGame,
   onOpenScoreboard
 }) {
+  const { t } = useLanguage()
+  
   const handleSubmit = (e) => {
     e.preventDefault()
     onAddGame()
@@ -84,7 +88,7 @@ function GameForm({
           onChange={handleHomeTeamChange}
           required
         >
-          <option value="">Выберите домашнюю команду</option>
+          <option value="">{t('selectHomeTeam')}</option>
           {availableHomeTeams.map(team => (
             <option key={team.id} value={team.id}>{team.name}</option>
           ))}
@@ -95,7 +99,7 @@ function GameForm({
           onChange={handleAwayTeamChange}
           required
         >
-          <option value="">Выберите гостевую команду</option>
+          <option value="">{t('selectAwayTeam')}</option>
           {availableAwayTeams.map(team => (
             <option key={team.id} value={team.id}>{team.name}</option>
           ))}
@@ -174,7 +178,7 @@ function GameForm({
             checked={gameType === 'regular'}
             onChange={(e) => setGameType(e.target.value)}
           />
-          Основное время
+          {t('gameTypeRegular')}
         </label>
         <label>
           <input
@@ -183,7 +187,7 @@ function GameForm({
             checked={gameType === 'shootout'}
             onChange={(e) => setGameType(e.target.value)}
           />
-          Буллиты
+          {t('gameTypeShootout')}
         </label>
       </div>
 
@@ -194,14 +198,14 @@ function GameForm({
           onClick={onOpenScoreboard}
           disabled={!selectedHomeTeam || !selectedAwayTeam}
         >
-          📺 Открыть табло
+          {t('openScoreboard')}
         </button>
         <button 
           type="submit"
           className="btn-primary"
           disabled={!isFormValid}
         >
-          Добавить игру
+          {t('addGame')}
         </button>
       </div>
     </form>

@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import TeamLogo from './TeamLogo'
+import { useLanguage } from '../i18n/LanguageContext'
 
 function TeamCard({ team, onDelete, onUpdateName }) {
+  const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [editedName, setEditedName] = useState(team.name)
   const inputRef = useRef(null)
@@ -70,7 +72,7 @@ function TeamCard({ team, onDelete, onUpdateName }) {
         <div 
           className="team-name"
           onClick={handleNameClick}
-          title="Кликните для редактирования"
+          title={t('clickToEdit')}
         >
           {team.name}
         </div>

@@ -1,17 +1,21 @@
+import { useLanguage } from '../i18n/LanguageContext'
+
 function MissingTeamModal({ 
   isOpen, 
   onClose, 
   onConfirm, 
   missingTeams 
 }) {
+  const { t } = useLanguage()
+  
   if (!isOpen) return null
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h3>Команды не найдены</h3>
+        <h3>{t('missingTeamsTitle')}</h3>
         <p>
-          После синхронизации с Google Sheets обнаружено, что следующие команды отсутствуют в данных:
+          {t('missingTeamsMessage')}
         </p>
         <ul style={{ 
           listStyle: 'none', 
@@ -31,14 +35,14 @@ function MissingTeamModal({
           ))}
         </ul>
         <p>
-          Вы можете создать эти команды заново и сохранить их вместе с игрой, либо отменить операцию.
+          {t('missingTeamsAction')}
         </p>
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>
-            Отменить
+            {t('cancelAction')}
           </button>
           <button className="btn-confirm" onClick={onConfirm}>
-            Создать команды и сохранить
+            {t('createTeamsAndSave')}
           </button>
         </div>
       </div>

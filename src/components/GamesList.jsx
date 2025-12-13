@@ -1,17 +1,19 @@
 import GameCard from './GameCard'
+import { useLanguage } from '../i18n/LanguageContext'
 
 function GamesList({ games, teams, onDeleteGame, onDeleteAllGames }) {
+  const { t } = useLanguage()
   if (games.length === 0) return null
 
   return (
     <section className="section">
       <div className="games-list-header">
-        <h2>Игры ({games.length})</h2>
+        <h2>{t('gamesTitle')} ({games.length})</h2>
         <button 
           className="btn-delete-all"
           onClick={onDeleteAllGames}
         >
-          🗑️ Удалить все игры
+          {t('deleteAllGames')}
         </button>
       </div>
       <div className="games-list">

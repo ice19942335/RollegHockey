@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { calculateStandings } from '../utils/calculateStats'
 import TeamLogo from './TeamLogo'
+import { useLanguage } from '../i18n/LanguageContext'
 
 function StandingsTable({ teams, games }) {
+  const { t } = useLanguage()
   const standings = useMemo(() => {
     return calculateStandings(teams, games)
   }, [teams, games])
@@ -11,22 +13,22 @@ function StandingsTable({ teams, games }) {
 
   return (
     <section className="section standings-section">
-      <h2>Турнирная таблица</h2>
+      <h2>{t('standingsTitle')}</h2>
       <div className="standings-table-wrapper">
         <table className="standings-table">
           <thead>
             <tr>
               <th></th>
-              <th>Команда</th>
-              <th>И</th>
-              <th>ПО</th>
-              <th>ПБ</th>
-              <th>ПОВ</th>
-              <th>ППБ</th>
-              <th>ЗГ</th>
-              <th>ПГ</th>
-              <th>±</th>
-              <th>О</th>
+              <th>{t('teamColumn')}</th>
+              <th>{t('gamesColumn')}</th>
+              <th>{t('winsRegularColumn')}</th>
+              <th>{t('winsShootoutColumn')}</th>
+              <th>{t('lossesRegularColumn')}</th>
+              <th>{t('lossesShootoutColumn')}</th>
+              <th>{t('goalsForColumn')}</th>
+              <th>{t('goalsAgainstColumn')}</th>
+              <th>{t('goalDiffColumn')}</th>
+              <th>{t('pointsColumn')}</th>
             </tr>
           </thead>
           <tbody>
@@ -60,25 +62,25 @@ function StandingsTable({ teams, games }) {
         </table>
       </div>
       <div className="legend">
-        <p><strong>Легенда:</strong></p>
+        <p><strong>{t('legend')}</strong></p>
         <ul>
-          <li>И - Игры</li>
-          <li>ПО - Победы в основное время</li>
-          <li>ПБ - Победы в буллитах</li>
-          <li>ПОВ - Поражения основное время</li>
-          <li>ППБ - Поражения по буллитам</li>
-          <li>ЗГ - Забитые голы</li>
-          <li>ПГ - Пропущенные голы</li>
-          <li>± - Разница голов</li>
-          <li>О - Очки</li>
+          <li>{t('legendGames')}</li>
+          <li>{t('legendWinsRegular')}</li>
+          <li>{t('legendWinsShootout')}</li>
+          <li>{t('legendLossesRegular')}</li>
+          <li>{t('legendLossesShootout')}</li>
+          <li>{t('legendGoalsFor')}</li>
+          <li>{t('legendGoalsAgainst')}</li>
+          <li>{t('legendGoalDiff')}</li>
+          <li>{t('legendPoints')}</li>
         </ul>
-        <p><strong>Система очков:</strong></p>
+        <p><strong>{t('scoringSystem')}</strong></p>
         <ul>
-          <li>Победа в основное время - 3 очка</li>
-          <li>Победа в буллитах - 2 очка</li>
-          <li>Ничья в основное время - 1 очко</li>
-          <li>Ничья в буллитах - 1 очко</li>
-          <li>Поражение - 0 очков</li>
+          <li>{t('scoringWinRegular')}</li>
+          <li>{t('scoringWinShootout')}</li>
+          <li>{t('scoringDrawRegular')}</li>
+          <li>{t('scoringDrawShootout')}</li>
+          <li>{t('scoringLoss')}</li>
         </ul>
       </div>
     </section>

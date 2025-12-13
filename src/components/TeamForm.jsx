@@ -1,4 +1,5 @@
 import { DEFAULT_TEAM_LOGOS, TEAM_COLORS } from '../constants/teamDefaults'
+import { useLanguage } from '../i18n/LanguageContext'
 
 function TeamForm({ 
   newTeamName, 
@@ -9,6 +10,8 @@ function TeamForm({
   setNewTeamColor,
   onAddTeam 
 }) {
+  const { t } = useLanguage()
+  
   const handleSubmit = (e) => {
     e.preventDefault()
     onAddTeam()
@@ -28,12 +31,12 @@ function TeamForm({
         type="text"
         value={newTeamName}
         onChange={(e) => setNewTeamName(e.target.value)}
-        placeholder="Название команды"
+        placeholder={t('teamNamePlaceholder')}
         required
       />
       
       <div className="logo-selection">
-        <label>Выберите логотип:</label>
+        <label>{t('selectLogo')}</label>
         <div className="logo-options">
           {DEFAULT_TEAM_LOGOS.map(logo => (
             <button
@@ -50,7 +53,7 @@ function TeamForm({
       </div>
 
       <div className="color-selection">
-        <label>Выберите цвет команды:</label>
+        <label>{t('selectColor')}</label>
         <div className="color-options">
           {TEAM_COLORS.map(color => (
             <button
@@ -69,7 +72,7 @@ function TeamForm({
       </div>
 
       <button type="submit" className="btn-primary">
-        Добавить команду
+        {t('addTeam')}
       </button>
     </form>
   )

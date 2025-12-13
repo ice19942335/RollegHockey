@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import Header from './components/Header'
+import { useLanguage } from './i18n/LanguageContext'
 import TeamForm from './components/TeamForm'
 import TeamList from './components/TeamList'
 import GameForm from './components/GameForm'
@@ -14,6 +15,7 @@ import { loadDataFromSheets, saveDataToSheets } from './utils/googleSheets'
 import { calculateStandings } from './utils/calculateStats'
 
 function App() {
+  const { t } = useLanguage()
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const [newTeamName, setNewTeamName] = useState('')
@@ -518,7 +520,7 @@ function App() {
     return (
       <div className="app">
         <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h2>Загрузка данных...</h2>
+          <h2>{t('loading')}</h2>
         </div>
       </div>
     )
@@ -529,9 +531,9 @@ function App() {
       {isSaving && (
         <div className="saving-overlay">
           <div className="saving-message">
-            <h2>Сохранение, подождите +-15 секунд...</h2>
+            <h2>{t('saving')}</h2>
             <p style={{ marginTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
-              Прошло: {savingSeconds} сек.
+              {t('elapsed', { seconds: savingSeconds })}
             </p>
           </div>
         </div>
@@ -554,7 +556,7 @@ function App() {
 
       <main className="main">
         <section className="section">
-          <h2>Добавить команду</h2>
+          <h2>{t('addTeamSection')}</h2>
           <TeamForm
             newTeamName={newTeamName}
             setNewTeamName={setNewTeamName}
@@ -573,7 +575,7 @@ function App() {
 
         {teams.length >= 2 && (
           <section className="section">
-            <h2>Добавить игру</h2>
+            <h2>{t('addGameSection')}</h2>
             <GameForm
               teams={teams}
               selectedHomeTeam={selectedHomeTeam}
@@ -605,8 +607,8 @@ function App() {
         isOpen={showConfirmModal}
         onClose={cancelDeleteAllGames}
         onConfirm={confirmDeleteAllGames}
-        title="Удалить все игры?"
-        message={`Вы уверены, что хотите удалить все ${games.length} игр? Это действие нельзя отменить.`}
+        title={t('deleteAllGamesTitle')}
+        message={t('deleteAllGamesMessage', { count: games.length })}
       />
       
       <MissingTeamModal
