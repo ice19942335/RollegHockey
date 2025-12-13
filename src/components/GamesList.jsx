@@ -19,17 +19,6 @@ function GamesList({ games, teams, onDeleteGame, onDeleteAllGames }) {
           const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
           const awayTeam = teams.find(t => String(t.id) === String(game.awayTeamId))
           
-          // Логируем для отладки, если команды не найдены
-          if (!homeTeam || !awayTeam) {
-            console.warn('Команды не найдены для игры:', {
-              gameId: game.id,
-              homeTeamId: game.homeTeamId,
-              awayTeamId: game.awayTeamId,
-              homeTeamFound: !!homeTeam,
-              awayTeamFound: !!awayTeam,
-              availableTeamIds: teams.map(t => ({ id: t.id, name: t.name }))
-            })
-          }
           
           return (
             <GameCard

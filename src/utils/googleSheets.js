@@ -8,15 +8,20 @@ const SPREADSHEET_ID = '155dQ0YN-WUNGcxRr_IxcJkN_v2gphA0s6c4uR1nExkg'
  */
 export async function loadDataFromSheets() {
   try {
-    // Используем публичный CSV экспорт
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`
+    // Используем публичный CSV экспорт с явным указанием кодировки UTF-8
+    // Пробуем разные варианты экспорта для поддержки русских символов
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`
     
     const response = await fetch(csvUrl)
     if (!response.ok) {
       throw new Error('Не удалось загрузить данные из таблицы')
     }
     
-    const csvText = await response.text()
+    // Получаем данные как ArrayBuffer для правильной обработки кодировки
+    const arrayBuffer = await response.arrayBuffer()
+    // Декодируем как UTF-8
+    const decoder = new TextDecoder('utf-8')
+    const csvText = decoder.decode(arrayBuffer)
     const lines = csvText.split('\n').filter(line => line.trim())
     
     if (lines.length === 0) {
@@ -39,10 +44,15 @@ export async function loadDataFromSheets() {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
       
-      if (line === 'TEAMS' || line === 'Команды' || line.includes('TEAMS') || line.includes('Команды')) {
+      // Проверяем заголовок TEAMS (может быть "TEAMS id" в одной ячейке или отдельная строка "TEAMS")
+      if (line.includes('TEAMS') || line.includes('Команды')) {
         isTeamsSection = true
         isGamesSection = false
         skipHeader = true
+        // Если это заголовок с "TEAMS id" в одной ячейке, пропускаем его
+        if (line.includes('id') && line.includes('name')) {
+          continue
+        }
         continue
       }
       
@@ -53,8 +63,8 @@ export async function loadDataFromSheets() {
         continue
       }
       
-      // Если видим заголовок с homeTeamId, это начало секции GAMES (даже если нет явной строки "GAMES")
-      if (line.includes('homeTeamId') && line.includes('awayTeamId')) {
+      // Если видим заголовок с awayTeamId или homeTeamId, это начало секции GAMES (даже если нет явной строки "GAMES")
+      if (line.includes('awayTeamId') || (line.includes('homeTeamId') && line.includes('awayTeamId'))) {
         isTeamsSection = false
         isGamesSection = true
         skipHeader = false // Заголовок уже найден, пропустим его в следующей проверке
@@ -62,15 +72,17 @@ export async function loadDataFromSheets() {
       }
       
       // Обрабатываем секцию STANDINGS - отключаем парсинг игр
-      if (line === 'STANDINGS' || line === 'Турнирная таблица' || (line.includes('STANDINGS') && !line.includes('id')) || (line.includes('teamId') && line.includes('teamName') && line.includes('gamesPlayed'))) {
+      if (line === 'STANDINGS' || line === 'Турнирная таблица' || 
+          (line.includes('STANDINGS') && !line.includes('homeTeamId') && !line.includes('awayTeamId')) || 
+          (line.includes('teamId') && line.includes('teamName') && line.includes('gamesPlayed'))) {
         isTeamsSection = false
         isGamesSection = false // Отключаем парсинг игр, так как началась секция standings
         skipHeader = true
         continue
       }
       
-      // Пропускаем заголовки для команд
-      if (skipHeader && isTeamsSection && (line.includes('id') || line.includes('name'))) {
+      // Пропускаем заголовки для команд (может быть "TEAMS id" в одной ячейке или отдельная строка с "id" и "name")
+      if (isTeamsSection && (line.includes('id') && line.includes('name'))) {
         skipHeader = false
         continue
       }
@@ -78,34 +90,55 @@ export async function loadDataFromSheets() {
       // Пропускаем заголовки для игр
       if (skipHeader && isGamesSection && (line.includes('id') && line.includes('homeTeamId'))) {
         skipHeader = false
-        console.log('Пропущен заголовок игр:', line)
         continue
       }
       
       skipHeader = false
       
-      if (isTeamsSection && line && !line.includes('id') && !line.includes('name') && line.trim()) {
+      if (isTeamsSection && line && line.trim()) {
+        // Пропускаем заголовки
+        if (line.includes('TEAMS') || (line.includes('id') && line.includes('name'))) {
+          continue
+        }
+        
         const values = parseCSVLine(line)
+        
+        // Сохраняем первые 4 значения (id, name, logo, color), даже если они пустые
+        // Google Sheets может добавлять много пустых колонок в конце
+        const cleanValues = []
+        for (let i = 0; i < Math.max(4, values.length); i++) {
+          if (i < 4) {
+            // Первые 4 значения всегда добавляем (id, name, logo, color)
+            cleanValues.push(values[i] !== undefined ? values[i] : '')
+          } else if (values[i] && values[i].trim()) {
+            // После 4-го значения добавляем только непустые
+            cleanValues.push(values[i])
+          }
+        }
+        
         // Проверяем, что это действительно строка с данными команды (не заголовок)
-        // values[0] должен быть ID (не пустой и не "id"), values[1] должен быть названием (не пустым и не "name")
-        if (values.length >= 4 && 
-            values[0] && values[0].trim() && values[0].trim() !== 'id' && 
-            values[1] && values[1].trim() && values[1].trim() !== 'name') {
-          // Используем Number() вместо parseInt() для сохранения точности больших чисел
-          // И преобразуем в строку для единообразия
-          const teamId = String(values[0].trim())
-          const teamName = String(values[1].trim())
+        // values[0] должен быть ID (не пустой и не "id")
+        if (cleanValues.length >= 4 && 
+            cleanValues[0] && cleanValues[0].trim() && 
+            cleanValues[0].trim() !== 'id' && 
+            !cleanValues[0].trim().includes('TEAMS')) {
           
-          // Проверяем, что название не является числом (это может быть ошибка парсинга)
-          if (isNaN(Number(teamName)) && teamName.length > 0) {
+          const teamId = String(cleanValues[0].trim())
+          // Берем имя из второй колонки, если оно есть
+          const teamName = cleanValues[1] && cleanValues[1].trim() ? String(cleanValues[1].trim()) : `Команда ${teamId.slice(-4)}`
+          const teamLogo = (cleanValues[2] || '🏒').trim()
+          const teamColor = (cleanValues[3] || '#1e3c72').trim()
+          
+          // Проверяем, что название не является заголовком
+          if (teamName !== 'name') {
             // Проверяем на дубликаты
             if (!teamIds.has(teamId)) {
               teamIds.add(teamId)
               teams.push({
-                id: teamId, // Сохраняем как строку для избежания проблем с точностью
+                id: teamId,
                 name: teamName,
-                logo: (values[2] || '🏒').trim(),
-                color: (values[3] || '#1e3c72').trim()
+                logo: teamLogo,
+                color: teamColor
               })
             }
           }
@@ -113,39 +146,59 @@ export async function loadDataFromSheets() {
       }
 
       if (isGamesSection && line && line.trim()) {
+        // Пропускаем заголовки (строка должна содержать "awayTeamId" или "homeTeamId")
+        if (line.includes('awayTeamId') || line.includes('homeTeamId') || 
+            (line.includes('id') && (line.includes('gameType') || line.includes('date')))) {
+          continue
+        }
         
-        // Пропускаем заголовки (строка должна содержать и "id" и "homeTeamId")
-        if (line.includes('homeTeamId') && line.includes('id')) {
+        // Дополнительная проверка: если строка содержит "teamName" или "position", это не игра, а standings
+        if (line.includes('teamName') || line.includes('position') || line.includes('gamesPlayed')) {
           continue
         }
         
         const values = parseCSVLine(line)
+        // Убираем пустые значения в конце массива
+        const cleanValues = values.filter((v, index) => {
+          // Оставляем первые 7 значений (id, homeTeamId, awayTeamId, homeScore, awayScore, gameType, date) или непустые значения
+          return index < 7 || v.trim() !== ''
+        })
         
         // Проверяем, что это действительно строка с данными игры
         // Должно быть минимум 7 полей, и первые три не должны быть пустыми
-        if (values.length >= 7 && values[0] && values[0].trim() && values[1] && values[1].trim() && values[2] && values[2].trim()) {
+        if (cleanValues.length >= 7 && 
+            cleanValues[0] && cleanValues[0].trim() && 
+            cleanValues[1] && cleanValues[1].trim() && 
+            cleanValues[2] && cleanValues[2].trim()) {
           // Дополнительная проверка: убеждаемся, что это не заголовок
-          if (values[0].trim() === 'id' || values[1].trim() === 'homeTeamId') {
+          if (cleanValues[0].trim() === 'id' || 
+              cleanValues[1].trim() === 'homeTeamId' || 
+              cleanValues[2].trim() === 'awayTeamId') {
+            continue
+          }
+          
+          // Проверяем, что homeTeamId и awayTeamId являются числами (ID команд), а не названиями
+          // Если это название команды (содержит кириллицу или пробелы), пропускаем
+          const homeTeamId = cleanValues[1].trim()
+          const awayTeamId = cleanValues[2].trim()
+          if (/[а-яА-ЯёЁ\s]/.test(homeTeamId) || /[а-яА-ЯёЁ\s]/.test(awayTeamId)) {
             continue
           }
           
           const game = {
-            id: String(values[0].trim()),
-            homeTeamId: String(values[1].trim()),
-            awayTeamId: String(values[2].trim()),
-            homeScore: parseInt(values[3]) || 0,
-            awayScore: parseInt(values[4]) || 0,
-            gameType: (values[5] || 'regular').trim(),
-            date: (values[6] || new Date().toLocaleDateString('ru-RU')).trim()
+            id: String(cleanValues[0].trim()),
+            homeTeamId: String(homeTeamId),
+            awayTeamId: String(awayTeamId),
+            homeScore: parseInt(cleanValues[3]) || 0,
+            awayScore: parseInt(cleanValues[4]) || 0,
+            gameType: (cleanValues[5] || 'regular').trim(),
+            date: (cleanValues[6] || new Date().toLocaleDateString('ru-RU')).trim()
           }
           games.push(game)
         }
       }
     }
     
-    console.log('Данные загружены из Google Sheets:', { teamsCount: teams.length, gamesCount: games.length })
-    console.log('Загруженные команды:', teams.map(t => ({ id: t.id, name: t.name })))
-    console.log('Загруженные игры:', games.map(g => ({ id: g.id, homeTeamId: g.homeTeamId, awayTeamId: g.awayTeamId })))
     return { teams, games }
   } catch (error) {
     console.error('Ошибка загрузки данных из Google Sheets:', error)
@@ -266,8 +319,15 @@ function parseCSVLine(line) {
     const char = line[i]
     
     if (char === '"') {
-      inQuotes = !inQuotes
+      // Если следующая кавычка тоже кавычка (экранированная кавычка), добавляем одну кавычку
+      if (i + 1 < line.length && line[i + 1] === '"' && inQuotes) {
+        current += '"'
+        i++ // Пропускаем следующую кавычку
+      } else {
+        inQuotes = !inQuotes
+      }
     } else if (char === ',' && !inQuotes) {
+      // Добавляем значение, даже если оно пустое
       values.push(current.trim())
       current = ''
     } else {
@@ -275,6 +335,7 @@ function parseCSVLine(line) {
     }
   }
   
+  // Добавляем последнее значение
   values.push(current.trim())
   return values
 }
