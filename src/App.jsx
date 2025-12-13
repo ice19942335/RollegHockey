@@ -48,8 +48,10 @@ function App() {
           games: JSON.parse(JSON.stringify(data.games))
         }
       }
+      return data // Возвращаем загруженные данные
     } catch (error) {
       console.error('Ошибка загрузки данных:', error)
+      return { teams: [], games: [] }
     } finally {
       if (showLoading) {
         setIsLoading(false)
@@ -72,10 +74,11 @@ function App() {
     // Очищаем предыдущий интервал, если он существует
     if (intervalIdRef.current) {
       clearInterval(intervalIdRef.current)
+      intervalIdRef.current = null
     }
     
-    // Не начинаем периодическую загрузку, пока не завершилась начальная загрузка
-    if (isLoading) return
+    // Не начинаем периодическую загрузку, пока не завершилась начальная загрузка или идет сохранение
+    if (isLoading || isSaving) return
     
     // Запускаем новый интервал
     intervalIdRef.current = setInterval(() => {
@@ -177,36 +180,82 @@ function App() {
     }
   }
 
-  const addGame = () => {
+  const addGame = async () => {
     if (selectedHomeTeam && selectedAwayTeam && 
         selectedHomeTeam !== selectedAwayTeam &&
         homeScore !== '' && awayScore !== '' &&
         parseInt(homeScore) >= 0 && parseInt(awayScore) >= 0) {
       
-      const homeScoreInt = parseInt(homeScore)
-      const awayScoreInt = parseInt(awayScore)
-
-      setGames([...games, {
-        id: String(Date.now()), // Преобразуем в строку для единообразия
-        homeTeamId: String(selectedHomeTeam), // Преобразуем в строку для единообразия
-        awayTeamId: String(selectedAwayTeam), // Преобразуем в строку для единообразия
-        homeScore: homeScoreInt,
-        awayScore: awayScoreInt,
-        gameType: gameType,
-        date: new Date().toLocaleDateString('ru-RU')
-      }])
-      
-      // Сбрасываем таймер периодической загрузки при добавлении игры
+      // Останавливаем таймер синхронизации перед началом процесса
       if (intervalIdRef.current) {
         clearInterval(intervalIdRef.current)
         intervalIdRef.current = null
       }
       
-      setSelectedHomeTeam('')
-      setSelectedAwayTeam('')
-      setHomeScore('0')
-      setAwayScore('0')
-      setGameType('regular')
+      // 1. Синхронизируем данные с Google Sheets перед добавлением игры
+      setIsSaving(true) // Показываем индикатор синхронизации
+      try {
+        const freshData = await loadData(false) // Загружаем свежие данные без показа индикатора загрузки
+        
+        // 2. Добавляем игру в свежие данные
+        const homeScoreInt = parseInt(homeScore)
+        const awayScoreInt = parseInt(awayScore)
+        
+        const newGame = {
+          id: String(Date.now()), // Преобразуем в строку для единообразия
+          homeTeamId: String(selectedHomeTeam), // Преобразуем в строку для единообразия
+          awayTeamId: String(selectedAwayTeam), // Преобразуем в строку для единообразия
+          homeScore: homeScoreInt,
+          awayScore: awayScoreInt,
+          gameType: gameType,
+          date: new Date().toLocaleDateString('ru-RU')
+        }
+        
+        // Используем свежие данные или текущие, если загрузка не удалась
+        const currentGames = freshData.games.length > 0 ? freshData.games : games
+        const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+        
+        // Обновляем состояние с новой игрой
+        setGames([...currentGames, newGame])
+        if (freshData.teams.length > 0) {
+          setTeams(currentTeams)
+        }
+        
+        // Очищаем форму
+        setSelectedHomeTeam('')
+        setSelectedAwayTeam('')
+        setHomeScore('0')
+        setAwayScore('0')
+        setGameType('regular')
+      } catch (error) {
+        console.error('Ошибка при синхронизации перед добавлением игры:', error)
+        // В случае ошибки все равно добавляем игру в текущие данные
+        const homeScoreInt = parseInt(homeScore)
+        const awayScoreInt = parseInt(awayScore)
+        
+        setGames([...games, {
+          id: String(Date.now()),
+          homeTeamId: String(selectedHomeTeam),
+          awayTeamId: String(selectedAwayTeam),
+          homeScore: homeScoreInt,
+          awayScore: awayScoreInt,
+          gameType: gameType,
+          date: new Date().toLocaleDateString('ru-RU')
+        }])
+        
+        setSelectedHomeTeam('')
+        setSelectedAwayTeam('')
+        setHomeScore('0')
+        setAwayScore('0')
+        setGameType('regular')
+      } finally {
+        setIsSaving(false) // Скрываем индикатор синхронизации
+        // Перезапускаем таймер синхронизации с дефолтным значением (10 секунд) после завершения процесса
+        // Используем setTimeout, чтобы убедиться, что isSaving уже false
+        setTimeout(() => {
+          startAutoLoadInterval()
+        }, 100)
+      }
     }
   }
 
@@ -277,18 +326,10 @@ function App() {
   return (
     <div className="app">
       {isSaving && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          background: '#2a5298',
-          color: 'white',
-          padding: '0.5rem 1rem',
-          borderRadius: '5px',
-          zIndex: 10002,
-          fontSize: '0.9rem'
-        }}>
-          Сохранение...
+        <div className="saving-overlay">
+          <div className="saving-message">
+            <h2>Сохранение, подождите +-10 секунд...</h2>
+          </div>
         </div>
       )}
       {showScoreboard && (
