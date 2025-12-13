@@ -8,17 +8,11 @@ import GamesList from './components/GamesList'
 import StandingsTable from './components/StandingsTable'
 import Scoreboard from './components/Scoreboard'
 import ConfirmModal from './components/ConfirmModal'
-import { config, DEFAULT_TEAMS } from './config'
 import { loadDataFromSheets, saveDataToSheets } from './utils/googleSheets'
+import { calculateStandings } from './utils/calculateStats'
 
 function App() {
-  const [teams, setTeams] = useState(() => {
-    // Если режим разработки, загружаем дефолтные команды
-    if (config.IsDev) {
-      return DEFAULT_TEAMS
-    }
-    return []
-  })
+  const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamLogo, setNewTeamLogo] = useState('🏒')
@@ -53,23 +47,9 @@ function App() {
           teams: JSON.parse(JSON.stringify(data.teams)),
           games: JSON.parse(JSON.stringify(data.games))
         }
-      } else if (config.IsDev) {
-        // Если данных нет и режим разработки, используем дефолтные команды
-        setTeams(DEFAULT_TEAMS)
-        previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
-          games: []
-        }
       }
     } catch (error) {
       console.error('Ошибка загрузки данных:', error)
-      if (config.IsDev) {
-        setTeams(DEFAULT_TEAMS)
-        previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
-          games: []
-        }
-      }
     } finally {
       if (showLoading) {
         setIsLoading(false)
@@ -151,7 +131,9 @@ function App() {
     saveTimeoutRef.current = setTimeout(async () => {
       setIsSaving(true)
       try {
-        await saveDataToSheets(teams, games)
+        // Вычисляем турнирную таблицу перед сохранением
+        const standings = calculateStandings(teams, games)
+        await saveDataToSheets(teams, games, standings)
       } catch (error) {
         console.error('Ошибка сохранения данных:', error)
       } finally {
@@ -171,7 +153,7 @@ function App() {
   const addTeam = () => {
     if (newTeamName.trim() && !teams.find(t => t.name === newTeamName.trim())) {
       setTeams([...teams, {
-        id: Date.now(),
+        id: String(Date.now()), // Преобразуем в строку для единообразия
         name: newTeamName.trim(),
         logo: newTeamLogo.trim() || '🏒',
         color: newTeamColor || '#1e3c72'
@@ -205,14 +187,20 @@ function App() {
       const awayScoreInt = parseInt(awayScore)
 
       setGames([...games, {
-        id: Date.now(),
-        homeTeamId: parseInt(selectedHomeTeam),
-        awayTeamId: parseInt(selectedAwayTeam),
+        id: String(Date.now()), // Преобразуем в строку для единообразия
+        homeTeamId: String(selectedHomeTeam), // Преобразуем в строку для единообразия
+        awayTeamId: String(selectedAwayTeam), // Преобразуем в строку для единообразия
         homeScore: homeScoreInt,
         awayScore: awayScoreInt,
         gameType: gameType,
         date: new Date().toLocaleDateString('ru-RU')
       }])
+      
+      // Сбрасываем таймер периодической загрузки при добавлении игры
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current)
+        intervalIdRef.current = null
+      }
       
       setSelectedHomeTeam('')
       setSelectedAwayTeam('')
@@ -273,8 +261,8 @@ function App() {
     }
   }
 
-  const homeTeam = teams.find(t => t.id === parseInt(selectedHomeTeam))
-  const awayTeam = teams.find(t => t.id === parseInt(selectedAwayTeam))
+  const homeTeam = teams.find(t => String(t.id) === String(selectedHomeTeam))
+  const awayTeam = teams.find(t => String(t.id) === String(selectedAwayTeam))
 
   if (isLoading) {
     return (

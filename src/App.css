@@ -657,6 +657,17 @@
   margin: 0.5rem 0;
 }
 
+.legend ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.legend li {
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
 .games-list {
   display: flex;
   flex-direction: column;

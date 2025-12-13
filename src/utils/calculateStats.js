@@ -1,6 +1,8 @@
 export const calculateTeamStats = (teamId, games) => {
+  // Преобразуем teamId в строку для единообразия
+  const teamIdStr = String(teamId)
   const teamGames = games.filter(g => 
-    g.homeTeamId === teamId || g.awayTeamId === teamId
+    String(g.homeTeamId) === teamIdStr || String(g.awayTeamId) === teamIdStr
   )
 
   let gamesPlayed = teamGames.length
