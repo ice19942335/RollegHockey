@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import Header from './components/Header'
-import Footer from './components/Footer'
 import TeamForm from './components/TeamForm'
 import TeamList from './components/TeamList'
 import GameForm from './components/GameForm'
@@ -377,8 +376,6 @@ function App() {
         message={`Вы уверены, что хотите удалить все ${games.length} игр? Это действие нельзя отменить.`}
       />
       </main>
-
-      <Footer />
     </div>
   )
 }

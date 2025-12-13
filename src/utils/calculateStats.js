@@ -21,21 +21,26 @@ export const calculateTeamStats = (teamId, games) => {
     goalsAgainst += opponentScore
 
     if (teamScore > opponentScore) {
+      // Победа
       if (game.gameType === 'regular') {
         wins++
         points += 3
       } else {
+        // Победа в буллитах
         winsOT++
         points += 2
       }
     } else if (teamScore < opponentScore) {
+      // Поражение - 0 очков (все поражения дают 0 очков)
       if (game.gameType === 'regular') {
         losses++
-        points += 0
       } else {
         lossesOT++
-        points += 1
       }
+      // points не изменяется (0 очков)
+    } else {
+      // Ничья - 1 очко в любом случае
+      points += 1
     }
   })
 
