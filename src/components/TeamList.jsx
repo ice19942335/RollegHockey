@@ -1,6 +1,6 @@
 import TeamCard from './TeamCard'
 
-function TeamList({ teams, onDeleteTeam }) {
+function TeamList({ teams, onDeleteTeam, onUpdateTeamName }) {
   if (teams.length === 0) return null
 
   return (
@@ -12,6 +12,7 @@ function TeamList({ teams, onDeleteTeam }) {
             key={team.id} 
             team={team} 
             onDelete={onDeleteTeam}
+            onUpdateName={onUpdateTeamName}
           />
         ))}
       </div>

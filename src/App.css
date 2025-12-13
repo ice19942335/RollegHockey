@@ -256,6 +256,38 @@
   font-size: 1.1rem;
   color: #1e3c72;
   text-align: center;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  transition: all 0.2s ease;
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.team-name:hover {
+  background: rgba(30, 60, 114, 0.1);
+}
+
+.team-name-input {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #1e3c72;
+  text-align: center;
+  border: 2px solid #2a5298;
+  border-radius: 5px;
+  padding: 0.25rem 0.5rem;
+  background: white;
+  outline: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.team-name-input:focus {
+  border-color: #2a5298;
+  box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
 }
 
 .delete-btn-small {
@@ -355,6 +387,12 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.score-btn-placeholder {
+  width: 45px;
+  height: 45px;
+  flex-shrink: 0;
 }
 
 .game-score input {
@@ -829,6 +867,12 @@
 
   .team-name {
     font-size: 0.95rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .team-name-input {
+    font-size: 0.95rem;
+    padding: 0.2rem 0.4rem;
   }
 
   .delete-btn-small {
@@ -1122,6 +1166,12 @@
 
   .team-name {
     font-size: 0.85rem;
+    padding: 0.15rem 0.3rem;
+  }
+
+  .team-name-input {
+    font-size: 0.85rem;
+    padding: 0.15rem 0.3rem;
   }
 
   .game-score input {
@@ -1133,6 +1183,11 @@
     width: 35px;
     height: 35px;
     font-size: 1.3rem;
+  }
+
+  .score-btn-placeholder {
+    width: 35px;
+    height: 35px;
   }
 
   .standings-table-wrapper {
@@ -1220,21 +1275,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 0;
 }
 
 .scoreboard {
-  width: 100%;
-  max-width: 1400px;
-  height: 100%;
-  max-height: 90vh;
+  width: 100vw;
+  height: 100vh;
   background: #000;
-  border-radius: 20px;
+  border-radius: 0;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 50px rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .scoreboard-close {
@@ -1243,10 +1298,10 @@
   right: 1.5rem;
   width: 50px;
   height: 50px;
-  border: 3px solid white;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
   font-size: 1.5rem;
   cursor: pointer;
   display: flex;
@@ -1257,23 +1312,26 @@
 }
 
 .scoreboard-close:hover {
-  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 1);
   transform: scale(1.1);
 }
 
 .scoreboard-content {
   display: flex;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   align-items: center;
   justify-content: space-between;
-  padding: 3rem;
+  padding: 0;
   gap: 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .scoreboard-team {
   flex: 1;
   height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1282,6 +1340,9 @@
   border: 4px solid;
   padding: 3rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .scoreboard-team-logo {
@@ -1320,6 +1381,12 @@
   gap: 2rem;
 }
 
+.scoreboard-btn-placeholder {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
 .scoreboard-team-score {
   font-size: 10rem;
   font-weight: bold;
@@ -1335,24 +1402,22 @@
   height: 80px;
   font-size: 3rem;
   font-weight: bold;
-  border: 4px solid white;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   line-height: 1;
   padding: 0;
 }
 
 .scoreboard-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 1);
   transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
 }
 
 .scoreboard-btn:active:not(:disabled) {
@@ -1360,28 +1425,23 @@
 }
 
 .scoreboard-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+  display: none;
 }
 
 .scoreboard-btn-plus {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.8) 0%, rgba(102, 187, 106, 0.8) 100%);
-  border-color: #4caf50;
+  background: transparent;
 }
 
 .scoreboard-btn-plus:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(56, 142, 60, 0.9) 0%, rgba(76, 175, 80, 0.9) 100%);
-  border-color: #388e3c;
+  background: transparent;
 }
 
 .scoreboard-btn-minus {
-  background: linear-gradient(135deg, rgba(244, 67, 54, 0.8) 0%, rgba(239, 83, 80, 0.8) 100%);
-  border-color: #f44336;
+  background: transparent;
 }
 
 .scoreboard-btn-minus:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(211, 47, 47, 0.9) 0%, rgba(244, 67, 54, 0.9) 100%);
-  border-color: #d32f2f;
+  background: transparent;
 }
 
 .scoreboard-separator {
@@ -1426,6 +1486,11 @@
     min-width: 150px;
   }
 
+  .scoreboard-btn-placeholder {
+    width: 60px;
+    height: 60px;
+  }
+
   .scoreboard-btn {
     width: 60px;
     height: 60px;
@@ -1465,6 +1530,11 @@
     margin-bottom: 1rem;
   }
 
+  .scoreboard-btn-placeholder {
+    width: 50px;
+    height: 50px;
+  }
+
   .scoreboard-score-controls {
     gap: 1rem;
   }
@@ -1479,6 +1549,11 @@
     height: 50px;
     font-size: 2rem;
     border-width: 3px;
+  }
+
+  .scoreboard-btn-placeholder {
+    width: 50px;
+    height: 50px;
   }
 
   .scoreboard-separator {

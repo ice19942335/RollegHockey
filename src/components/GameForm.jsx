@@ -35,6 +35,8 @@ function GameForm({
     const current = parseInt(homeScore) || 0
     if (current > 0) {
       setHomeScore((current - 1).toString())
+    } else {
+      setHomeScore('0')
     }
   }
 
@@ -47,6 +49,8 @@ function GameForm({
     const current = parseInt(awayScore) || 0
     if (current > 0) {
       setAwayScore((current - 1).toString())
+    } else {
+      setAwayScore('0')
     }
   }
 
@@ -100,19 +104,22 @@ function GameForm({
       
       <div className="game-score">
         <div className="score-control">
-          <button
-            type="button"
-            className="score-btn score-btn-minus"
-            onClick={decrementHomeScore}
-            disabled={!selectedHomeTeam || (parseInt(homeScore) || 0) === 0}
-          >
-            −
-          </button>
+          {selectedHomeTeam && parseInt(homeScore || '0') > 0 ? (
+            <button
+              type="button"
+              className="score-btn score-btn-minus"
+              onClick={decrementHomeScore}
+            >
+              −
+            </button>
+          ) : (
+            <div className="score-btn-placeholder"></div>
+          )}
           <input
             type="number"
             min="0"
-            value={homeScore}
-            onChange={(e) => setHomeScore(e.target.value)}
+            value={homeScore || '0'}
+            onChange={(e) => setHomeScore(e.target.value || '0')}
             placeholder="0"
             disabled={!selectedHomeTeam}
             required
@@ -128,19 +135,22 @@ function GameForm({
         </div>
         <span className="score-separator">:</span>
         <div className="score-control">
-          <button
-            type="button"
-            className="score-btn score-btn-minus"
-            onClick={decrementAwayScore}
-            disabled={!selectedAwayTeam || (parseInt(awayScore) || 0) === 0}
-          >
-            −
-          </button>
+          {selectedAwayTeam && parseInt(awayScore || '0') > 0 ? (
+            <button
+              type="button"
+              className="score-btn score-btn-minus"
+              onClick={decrementAwayScore}
+            >
+              −
+            </button>
+          ) : (
+            <div className="score-btn-placeholder"></div>
+          )}
           <input
             type="number"
             min="0"
-            value={awayScore}
-            onChange={(e) => setAwayScore(e.target.value)}
+            value={awayScore || '0'}
+            onChange={(e) => setAwayScore(e.target.value || '0')}
             placeholder="0"
             disabled={!selectedAwayTeam}
             required

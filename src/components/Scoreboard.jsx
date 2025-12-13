@@ -46,17 +46,20 @@ function Scoreboard({
             </div>
             <div className="scoreboard-team-name">{homeTeam?.name || 'Команда 1'}</div>
             <div className="scoreboard-score-controls">
-              <button
-                type="button"
-                className="scoreboard-btn scoreboard-btn-minus"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDecrementHomeScore()
-                }}
-                disabled={currentHomeScore === 0}
-              >
-                −
-              </button>
+              {currentHomeScore > 0 ? (
+                <button
+                  type="button"
+                  className="scoreboard-btn scoreboard-btn-minus"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDecrementHomeScore()
+                  }}
+                >
+                  −
+                </button>
+              ) : (
+                <div className="scoreboard-btn-placeholder"></div>
+              )}
               <div className="scoreboard-team-score">{homeScore || 0}</div>
               <button
                 type="button"
@@ -90,17 +93,20 @@ function Scoreboard({
             </div>
             <div className="scoreboard-team-name">{awayTeam?.name || 'Команда 2'}</div>
             <div className="scoreboard-score-controls">
-              <button
-                type="button"
-                className="scoreboard-btn scoreboard-btn-minus"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDecrementAwayScore()
-                }}
-                disabled={currentAwayScore === 0}
-              >
-                −
-              </button>
+              {currentAwayScore > 0 ? (
+                <button
+                  type="button"
+                  className="scoreboard-btn scoreboard-btn-minus"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDecrementAwayScore()
+                  }}
+                >
+                  −
+                </button>
+              ) : (
+                <div className="scoreboard-btn-placeholder"></div>
+              )}
               <div className="scoreboard-team-score">{awayScore || 0}</div>
               <button
                 type="button"

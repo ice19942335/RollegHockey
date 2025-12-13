@@ -9,17 +9,24 @@ import GamesList from './components/GamesList'
 import StandingsTable from './components/StandingsTable'
 import Scoreboard from './components/Scoreboard'
 import ConfirmModal from './components/ConfirmModal'
+import { config, DEFAULT_TEAMS } from './config'
 
 function App() {
-  const [teams, setTeams] = useState([])
+  const [teams, setTeams] = useState(() => {
+    // Если режим разработки, загружаем дефолтные команды
+    if (config.IsDev) {
+      return DEFAULT_TEAMS
+    }
+    return []
+  })
   const [games, setGames] = useState([])
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamLogo, setNewTeamLogo] = useState('🏒')
   const [newTeamColor, setNewTeamColor] = useState('#1e3c72')
   const [selectedHomeTeam, setSelectedHomeTeam] = useState('')
   const [selectedAwayTeam, setSelectedAwayTeam] = useState('')
-  const [homeScore, setHomeScore] = useState('')
-  const [awayScore, setAwayScore] = useState('')
+  const [homeScore, setHomeScore] = useState('0')
+  const [awayScore, setAwayScore] = useState('0')
   const [gameType, setGameType] = useState('regular')
   const [showScoreboard, setShowScoreboard] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -43,6 +50,14 @@ function App() {
     setGames(games.filter(g => g.homeTeamId !== id && g.awayTeamId !== id))
   }
 
+  const updateTeamName = (id, newName) => {
+    if (newName.trim() && !teams.find(t => t.id !== id && t.name === newName.trim())) {
+      setTeams(teams.map(team => 
+        team.id === id ? { ...team, name: newName.trim() } : team
+      ))
+    }
+  }
+
   const addGame = () => {
     if (selectedHomeTeam && selectedAwayTeam && 
         selectedHomeTeam !== selectedAwayTeam &&
@@ -64,8 +79,8 @@ function App() {
       
       setSelectedHomeTeam('')
       setSelectedAwayTeam('')
-      setHomeScore('')
-      setAwayScore('')
+      setHomeScore('0')
+      setAwayScore('0')
       setGameType('regular')
     }
   }
@@ -157,6 +172,7 @@ function App() {
           <TeamList 
             teams={teams} 
             onDeleteTeam={deleteTeam}
+            onUpdateTeamName={updateTeamName}
           />
         </section>
 
