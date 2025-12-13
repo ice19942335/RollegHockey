@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -10,6 +10,7 @@ import StandingsTable from './components/StandingsTable'
 import Scoreboard from './components/Scoreboard'
 import ConfirmModal from './components/ConfirmModal'
 import { config, DEFAULT_TEAMS } from './config'
+import { loadDataFromSheets, saveDataToSheets } from './utils/googleSheets'
 
 function App() {
   const [teams, setTeams] = useState(() => {
@@ -30,6 +31,63 @@ function App() {
   const [gameType, setGameType] = useState('regular')
   const [showScoreboard, setShowScoreboard] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const saveTimeoutRef = useRef(null)
+  
+  // Загрузка данных из Google Sheets при старте
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true)
+      try {
+        const data = await loadDataFromSheets()
+        if (data.teams.length > 0 || data.games.length > 0) {
+          setTeams(data.teams)
+          setGames(data.games)
+        } else if (config.IsDev) {
+          // Если данных нет и режим разработки, используем дефолтные команды
+          setTeams(DEFAULT_TEAMS)
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки данных:', error)
+        if (config.IsDev) {
+          setTeams(DEFAULT_TEAMS)
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadData()
+  }, [])
+  
+  // Автосохранение при изменении teams или games
+  useEffect(() => {
+    if (isLoading) return
+    
+    // Очищаем предыдущий таймер
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+    
+    // Устанавливаем новый таймер для сохранения через 2 секунды после последнего изменения
+    saveTimeoutRef.current = setTimeout(async () => {
+      setIsSaving(true)
+      try {
+        await saveDataToSheets(teams, games)
+      } catch (error) {
+        console.error('Ошибка сохранения данных:', error)
+      } finally {
+        setIsSaving(false)
+      }
+    }, 2000)
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [teams, games, isLoading])
 
   const addTeam = () => {
     if (newTeamName.trim() && !teams.find(t => t.name === newTeamName.trim())) {
@@ -139,8 +197,33 @@ function App() {
   const homeTeam = teams.find(t => t.id === parseInt(selectedHomeTeam))
   const awayTeam = teams.find(t => t.id === parseInt(selectedAwayTeam))
 
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <h2>Загрузка данных...</h2>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app">
+      {isSaving && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: '#2a5298',
+          color: 'white',
+          padding: '0.5rem 1rem',
+          borderRadius: '5px',
+          zIndex: 10002,
+          fontSize: '0.9rem'
+        }}>
+          Сохранение...
+        </div>
+      )}
       {showScoreboard && (
         <Scoreboard
           homeTeam={homeTeam}
