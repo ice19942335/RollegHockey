@@ -275,8 +275,17 @@ function App() {
         const homeScoreInt = parseInt(homeScore)
         const awayScoreInt = parseInt(awayScore)
         
+        // Используем свежие данные или текущие, если загрузка не удалась
+        const currentGames = freshData.games.length > 0 ? freshData.games : games
+        
+        // Генерируем уникальный ID, проверяя существующие ID
+        let newGameId
+        do {
+          newGameId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        } while (currentGames.some(game => game.id === newGameId))
+        
         const newGame = {
-          id: String(Date.now()), // Преобразуем в строку для единообразия
+          id: newGameId, // Уникальный ID с временной меткой и случайной строкой
           homeTeamId: String(selectedHomeTeam), // Преобразуем в строку для единообразия
           awayTeamId: String(selectedAwayTeam), // Преобразуем в строку для единообразия
           homeScore: homeScoreInt,
@@ -285,8 +294,6 @@ function App() {
           date: new Date().toLocaleDateString('ru-RU')
         }
         
-        // Используем свежие данные или текущие, если загрузка не удалась
-        const currentGames = freshData.games.length > 0 ? freshData.games : games
         const updatedGames = [...currentGames, newGame]
         
         // Обновляем состояние с новой игрой
@@ -317,8 +324,14 @@ function App() {
         const homeScoreInt = parseInt(homeScore)
         const awayScoreInt = parseInt(awayScore)
         
+        // Генерируем уникальный ID, проверяя существующие ID
+        let newGameId
+        do {
+          newGameId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        } while (games.some(game => game.id === newGameId))
+        
         const newGame = {
-          id: String(Date.now()),
+          id: newGameId, // Уникальный ID с временной меткой и случайной строкой
           homeTeamId: String(selectedHomeTeam),
           awayTeamId: String(selectedAwayTeam),
           homeScore: homeScoreInt,
@@ -383,9 +396,19 @@ function App() {
         }
       }
       
+      const currentGames = pendingGameData.freshData.games.length > 0 
+        ? pendingGameData.freshData.games 
+        : games
+      
+      // Генерируем уникальный ID, проверяя существующие ID
+      let newGameId
+      do {
+        newGameId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      } while (currentGames.some(game => game.id === newGameId))
+      
       // Создаем игру
       const newGame = {
-        id: String(Date.now()),
+        id: newGameId, // Уникальный ID с временной меткой и случайной строкой
         homeTeamId: pendingGameData.homeTeamId,
         awayTeamId: pendingGameData.awayTeamId,
         homeScore: pendingGameData.homeScore,
@@ -394,9 +417,6 @@ function App() {
         date: new Date().toLocaleDateString('ru-RU')
       }
       
-      const currentGames = pendingGameData.freshData.games.length > 0 
-        ? pendingGameData.freshData.games 
-        : games
       const updatedGames = [...currentGames, newGame]
       
       // Обновляем состояние
