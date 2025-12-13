@@ -33,9 +33,12 @@ function Scoreboard({
       }}
     >
       <div className="scoreboard" onClick={(e) => e.stopPropagation()}>
-        <button className="scoreboard-close" onClick={onClose}>
-          ✕
-        </button>
+        <div className="scoreboard-top-bar">
+          <div className="scoreboard-game-type">{gameTypeLabels[gameType] || 'Основное время'}</div>
+          <button className="scoreboard-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
         
         <div className="scoreboard-content">
           <div 
@@ -82,7 +85,6 @@ function Scoreboard({
 
           <div className="scoreboard-separator">
             <div className="scoreboard-vs">VS</div>
-            <div className="scoreboard-game-type">{gameTypeLabels[gameType] || 'Основное время'}</div>
           </div>
 
           <div 
