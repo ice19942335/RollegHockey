@@ -244,6 +244,7 @@
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   border-radius: 15px;
   padding: 1.5rem;
+  padding-bottom: 0.5rem; /* Небольшой паддинг снизу */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -261,8 +262,9 @@
 .team-color-indicator {
   width: 100%;
   height: 4px;
-  border-radius: 2px;
-  margin-top: 0.5rem;
+  border-radius: 0 0 15px 15px; /* Скругляем только нижние углы */
+  margin-top: auto; /* Прижимаем к низу */
+  margin-bottom: 0;
 }
 
 .team-logo {

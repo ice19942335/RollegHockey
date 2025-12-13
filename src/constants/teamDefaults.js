@@ -31,16 +31,6 @@ export const TEAM_COLORS = [
   { id: 7, name: 'Золотой', value: '#f57f17', gradient: 'linear-gradient(135deg, #f57f17 0%, #ffd700 100%)' },
   { id: 8, name: 'Бирюзовый', value: '#00838f', gradient: 'linear-gradient(135deg, #00838f 0%, #00acc1 100%)' },
   { id: 9, name: 'Розовый', value: '#c2185b', gradient: 'linear-gradient(135deg, #c2185b 0%, #e91e63 100%)' },
-  { id: 10, name: 'Голубой', value: '#0277bd', gradient: 'linear-gradient(135deg, #0277bd 0%, #03a9f4 100%)' },
-  { id: 11, name: 'Коричневый', value: '#5d4037', gradient: 'linear-gradient(135deg, #5d4037 0%, #8d6e63 100%)' },
-  { id: 12, name: 'Серый', value: '#546e7a', gradient: 'linear-gradient(135deg, #546e7a 0%, #78909c 100%)' },
-  { id: 13, name: 'Лайм', value: '#827717', gradient: 'linear-gradient(135deg, #827717 0%, #aed581 100%)' },
-  { id: 14, name: 'Индиго', value: '#283593', gradient: 'linear-gradient(135deg, #283593 0%, #3f51b5 100%)' },
-  { id: 15, name: 'Бордовый', value: '#880e4f', gradient: 'linear-gradient(135deg, #880e4f 0%, #ad1457 100%)' },
-  { id: 16, name: 'Изумрудный', value: '#004d40', gradient: 'linear-gradient(135deg, #004d40 0%, #00796b 100%)' },
-  { id: 17, name: 'Малиновый', value: '#b71c1c', gradient: 'linear-gradient(135deg, #b71c1c 0%, #d32f2f 100%)' },
-  { id: 18, name: 'Темно-синий', value: '#0d47a1', gradient: 'linear-gradient(135deg, #0d47a1 0%, #1565c0 100%)' },
-  { id: 19, name: 'Оливковый', value: '#33691e', gradient: 'linear-gradient(135deg, #33691e 0%, #558b2f 100%)' },
-  { id: 20, name: 'Серебряный', value: '#616161', gradient: 'linear-gradient(135deg, #616161 0%, #9e9e9e 100%)' }
+  { id: 10, name: 'Коричневый', value: '#5d4037', gradient: 'linear-gradient(135deg, #5d4037 0%, #8d6e63 100%)' }
 ]
 
