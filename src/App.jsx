@@ -30,6 +30,9 @@ function App() {
   const [pendingGameData, setPendingGameData] = useState(null) // Хранит данные игры, ожидающей подтверждения
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [savingSeconds, setSavingSeconds] = useState(0) // Счетчик секунд сохранения
+  const savingIntervalRef = useRef(null) // Ref для хранения интервала счетчика
+  const savingTimeoutRef = useRef(null) // Ref для хранения timeout счетчика
   const isInitialLoadRef = useRef(true)
   const previousDataRef = useRef({ teams: [], games: [] })
   const hasLoadedRef = useRef(false) // Флаг для предотвращения повторной загрузки
@@ -72,6 +75,43 @@ function App() {
     
     loadData(true) // Показываем индикатор загрузки только при первой загрузке
   }, [])
+  
+  // Счетчик секунд при сохранении
+  useEffect(() => {
+    // Очищаем предыдущие таймеры, если они существуют
+    if (savingIntervalRef.current) {
+      clearInterval(savingIntervalRef.current)
+      savingIntervalRef.current = null
+    }
+    if (savingTimeoutRef.current) {
+      clearTimeout(savingTimeoutRef.current)
+      savingTimeoutRef.current = null
+    }
+    
+    if (isSaving) {
+      // Сбрасываем счетчик при начале сохранения
+      setSavingSeconds(0)
+      
+      // Запускаем интервал сразу, он будет обновлять счетчик каждую секунду
+      savingIntervalRef.current = setInterval(() => {
+        setSavingSeconds(prev => prev + 1)
+      }, 1000)
+    } else {
+      // Сбрасываем счетчик при завершении сохранения
+      setSavingSeconds(0)
+    }
+    
+    return () => {
+      if (savingIntervalRef.current) {
+        clearInterval(savingIntervalRef.current)
+        savingIntervalRef.current = null
+      }
+      if (savingTimeoutRef.current) {
+        clearTimeout(savingTimeoutRef.current)
+        savingTimeoutRef.current = null
+      }
+    }
+  }, [isSaving])
   
   // Автосохранение при изменении teams или games (только если данные реально изменились)
   useEffect(() => {
@@ -435,7 +475,10 @@ function App() {
       {isSaving && (
         <div className="saving-overlay">
           <div className="saving-message">
-            <h2>Сохранение, подождите +-10 секунд...</h2>
+            <h2>Сохранение, подождите +-15 секунд...</h2>
+            <p style={{ marginTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
+              Прошло: {savingSeconds} сек.
+            </p>
           </div>
         </div>
       )}
