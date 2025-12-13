@@ -9,6 +9,7 @@ import StandingsTable from './components/StandingsTable'
 import Scoreboard from './components/Scoreboard'
 import ConfirmModal from './components/ConfirmModal'
 import MissingTeamModal from './components/MissingTeamModal'
+import DeleteTeamModal from './components/DeleteTeamModal'
 import { loadDataFromSheets, saveDataToSheets } from './utils/googleSheets'
 import { calculateStandings } from './utils/calculateStats'
 
@@ -26,6 +27,9 @@ function App() {
   const [showScoreboard, setShowScoreboard] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showMissingTeamModal, setShowMissingTeamModal] = useState(false)
+  const [showDeleteTeamModal, setShowDeleteTeamModal] = useState(false)
+  const [teamToDelete, setTeamToDelete] = useState(null)
+  const [relatedGamesToDelete, setRelatedGamesToDelete] = useState([])
   const [missingTeams, setMissingTeams] = useState([])
   const [pendingGameData, setPendingGameData] = useState(null) // Хранит данные игры, ожидающей подтверждения
   const [isLoading, setIsLoading] = useState(true)
@@ -166,8 +170,38 @@ function App() {
   }
 
   const deleteTeam = (id) => {
-    setTeams(teams.filter(t => t.id !== id))
-    setGames(games.filter(g => g.homeTeamId !== id && g.awayTeamId !== id))
+    // Находим команду для удаления
+    const team = teams.find(t => String(t.id) === String(id))
+    if (!team) return
+    
+    // Находим все игры, связанные с этой командой
+    const relatedGames = games.filter(g => 
+      String(g.homeTeamId) === String(id) || String(g.awayTeamId) === String(id)
+    )
+    
+    // Если есть связанные игры, показываем модальное окно
+    if (relatedGames.length > 0) {
+      setTeamToDelete(team)
+      setRelatedGamesToDelete(relatedGames)
+      setShowDeleteTeamModal(true)
+    } else {
+      // Если игр нет, удаляем команду сразу
+      confirmDeleteTeam(id)
+    }
+  }
+  
+  const confirmDeleteTeam = (id) => {
+    setTeams(teams.filter(t => String(t.id) !== String(id)))
+    setGames(games.filter(g => String(g.homeTeamId) !== String(id) && String(g.awayTeamId) !== String(id)))
+    setShowDeleteTeamModal(false)
+    setTeamToDelete(null)
+    setRelatedGamesToDelete([])
+  }
+  
+  const cancelDeleteTeam = () => {
+    setShowDeleteTeamModal(false)
+    setTeamToDelete(null)
+    setRelatedGamesToDelete([])
   }
 
   const updateTeamName = (id, newName) => {
@@ -560,6 +594,15 @@ function App() {
         onClose={handleCancelMissingTeams}
         onConfirm={handleConfirmMissingTeams}
         missingTeams={missingTeams}
+      />
+      
+      <DeleteTeamModal
+        isOpen={showDeleteTeamModal}
+        onClose={cancelDeleteTeam}
+        onConfirm={() => teamToDelete && confirmDeleteTeam(teamToDelete.id)}
+        team={teamToDelete}
+        relatedGames={relatedGamesToDelete}
+        teams={teams}
       />
       </main>
     </div>
