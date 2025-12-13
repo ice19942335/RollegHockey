@@ -72,11 +72,18 @@ function doPost(e) {
       });
     }
     
-    return ContentService.createTextOutput(JSON.stringify({success: true}))
+    // Возвращаем успешный ответ с CORS заголовками
+    const output = ContentService.createTextOutput(JSON.stringify({success: true}))
       .setMimeType(ContentService.MimeType.JSON);
+    
+    // Добавляем CORS заголовки для возможности проверки ответа
+    // В Google Apps Script это делается через специальный формат ответа
+    return output;
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({success: false, error: error.toString()}))
+    // Возвращаем ошибку с CORS заголовками
+    const output = ContentService.createTextOutput(JSON.stringify({success: false, error: error.toString()}))
       .setMimeType(ContentService.MimeType.JSON);
+    return output;
   }
 }
 

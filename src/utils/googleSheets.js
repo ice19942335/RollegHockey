@@ -135,21 +135,59 @@ export async function saveDataToSheets(teams, games) {
     console.log('Отправка данных в Google Sheets...', { teamsCount: teams.length, gamesCount: games.length })
     
     try {
-      // Отправляем JSON данные напрямую
-      // Google Apps Script ожидает данные в e.postData.contents
-      const response = await fetch(scriptUrl, {
-        method: 'POST',
-        mode: 'no-cors', // Google Apps Script требует no-cors для публичных Web Apps
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      })
-      
-      // В режиме no-cors мы не можем проверить ответ, но запрос отправлен
-      console.log('✅ Запрос отправлен в Google Sheets')
-      console.log('Примечание: В режиме no-cors невозможно проверить успешность запроса. Проверьте таблицу через несколько секунд.')
-      return true
+      // Сначала пытаемся использовать cors режим для проверки ответа
+      try {
+        const response = await fetch(scriptUrl, {
+          method: 'POST',
+          mode: 'cors', // Используем cors для возможности проверки ответа
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        })
+        
+        // Проверяем статус ответа
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        // Пытаемся прочитать JSON ответ
+        try {
+          const result = await response.json()
+          if (result.success) {
+            console.log('✅ Данные успешно сохранены в Google Sheets')
+            return true
+          } else {
+            console.error('❌ Ошибка сохранения данных:', result.error || 'Неизвестная ошибка')
+            return false
+          }
+        } catch (parseError) {
+          // Если ответ не JSON, но статус OK, считаем успешным
+          const text = await response.text()
+          console.log('✅ Данные отправлены в Google Sheets')
+          return true
+        }
+      } catch (corsError) {
+        // Если CORS не работает, пробуем no-cors режим (fallback)
+        if (corsError.name === 'TypeError' && corsError.message.includes('Failed to fetch')) {
+          console.warn('⚠️ CORS режим не поддерживается, используем no-cors режим (ответ не будет проверен)')
+          
+          await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+          })
+          
+          console.log('✅ Запрос отправлен в Google Sheets (режим no-cors)')
+          console.log('Примечание: Проверьте таблицу через несколько секунд для подтверждения сохранения.')
+          return true
+        } else {
+          throw corsError
+        }
+      }
     } catch (error) {
       console.error('❌ Ошибка отправки данных в Google Sheets:', error)
       console.log('Возможные причины:')

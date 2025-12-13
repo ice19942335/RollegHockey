@@ -36,46 +36,88 @@ function App() {
   const saveTimeoutRef = useRef(null)
   const isInitialLoadRef = useRef(true)
   const previousDataRef = useRef({ teams: [], games: [] })
+  const hasLoadedRef = useRef(false) // Флаг для предотвращения повторной загрузки
+  const intervalIdRef = useRef(null) // Для хранения ID интервала периодической загрузки
   
-  // Загрузка данных из Google Sheets при старте
-  useEffect(() => {
-    const loadData = async () => {
+  // Функция загрузки данных из Google Sheets
+  const loadData = async (showLoading = false) => {
+    if (showLoading) {
       setIsLoading(true)
-      try {
-        const data = await loadDataFromSheets()
-        if (data.teams.length > 0 || data.games.length > 0) {
-          setTeams(data.teams)
-          setGames(data.games)
-          // Сохраняем загруженные данные как предыдущие
-          previousDataRef.current = {
-            teams: JSON.parse(JSON.stringify(data.teams)),
-            games: JSON.parse(JSON.stringify(data.games))
-          }
-        } else if (config.IsDev) {
-          // Если данных нет и режим разработки, используем дефолтные команды
-          setTeams(DEFAULT_TEAMS)
-          previousDataRef.current = {
-            teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
-            games: []
-          }
+    }
+    try {
+      const data = await loadDataFromSheets()
+      if (data.teams.length > 0 || data.games.length > 0) {
+        setTeams(data.teams)
+        setGames(data.games)
+        // Сохраняем загруженные данные как предыдущие
+        previousDataRef.current = {
+          teams: JSON.parse(JSON.stringify(data.teams)),
+          games: JSON.parse(JSON.stringify(data.games))
         }
-      } catch (error) {
-        console.error('Ошибка загрузки данных:', error)
-        if (config.IsDev) {
-          setTeams(DEFAULT_TEAMS)
-          previousDataRef.current = {
-            teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
-            games: []
-          }
+      } else if (config.IsDev) {
+        // Если данных нет и режим разработки, используем дефолтные команды
+        setTeams(DEFAULT_TEAMS)
+        previousDataRef.current = {
+          teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
+          games: []
         }
-      } finally {
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных:', error)
+      if (config.IsDev) {
+        setTeams(DEFAULT_TEAMS)
+        previousDataRef.current = {
+          teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
+          games: []
+        }
+      }
+    } finally {
+      if (showLoading) {
         setIsLoading(false)
         isInitialLoadRef.current = false
       }
     }
+  }
+  
+  // Загрузка данных из Google Sheets при старте
+  useEffect(() => {
+    // Предотвращаем повторную загрузку (защита от StrictMode)
+    if (hasLoadedRef.current) return
+    hasLoadedRef.current = true
     
-    loadData()
+    loadData(true) // Показываем индикатор загрузки только при первой загрузке
   }, [])
+  
+  // Функция для запуска/перезапуска интервала периодической загрузки
+  const startAutoLoadInterval = () => {
+    // Очищаем предыдущий интервал, если он существует
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current)
+    }
+    
+    // Не начинаем периодическую загрузку, пока не завершилась начальная загрузка
+    if (isLoading) return
+    
+    // Запускаем новый интервал
+    intervalIdRef.current = setInterval(() => {
+      // Не загружаем данные, если идет сохранение
+      if (!isSaving) {
+        loadData(false) // Не показываем индикатор загрузки при периодическом обновлении
+      }
+    }, 10000) // 10 секунд
+  }
+  
+  // Периодическая загрузка данных каждые 10 секунд
+  useEffect(() => {
+    startAutoLoadInterval()
+    
+    return () => {
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current)
+        intervalIdRef.current = null
+      }
+    }
+  }, [isLoading, isSaving])
   
   // Автосохранение при изменении teams или games (только если данные реально изменились)
   useEffect(() => {
@@ -100,6 +142,12 @@ function App() {
       clearTimeout(saveTimeoutRef.current)
     }
     
+    // Сбрасываем таймер периодической загрузки при изменении данных
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current)
+      intervalIdRef.current = null
+    }
+    
     // Устанавливаем новый таймер для сохранения через 2 секунды после последнего изменения
     saveTimeoutRef.current = setTimeout(async () => {
       setIsSaving(true)
@@ -109,6 +157,8 @@ function App() {
         console.error('Ошибка сохранения данных:', error)
       } finally {
         setIsSaving(false)
+        // Перезапускаем интервал периодической загрузки после завершения сохранения
+        startAutoLoadInterval()
       }
     }, 2000)
     
