@@ -563,8 +563,15 @@
   height: 40px;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   border: 2px solid #ddd;
+  will-change: transform;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.color-option:active {
+  transform: scale(0.95);
 }
 
 .color-option:hover {
@@ -577,6 +584,21 @@
   border-width: 3px;
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
   transform: scale(1.1);
+}
+
+/* Оптимизация для мобильных устройств */
+@media (hover: none) and (pointer: coarse) {
+  .color-option {
+    transition: transform 0.1s ease, border-color 0.1s ease;
+  }
+  
+  .color-option:hover {
+    transform: none;
+  }
+  
+  .color-option:active {
+    transform: scale(0.9);
+  }
 }
 
 .custom-color-input {

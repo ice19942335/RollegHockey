@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import { DEFAULT_TEAM_LOGOS, TEAM_COLORS } from '../constants/teamDefaults'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -12,18 +13,28 @@ function TeamForm({
 }) {
   const { t } = useLanguage()
   
-  const handleSubmit = (e) => {
+  const handleSubmit = useCallback((e) => {
     e.preventDefault()
     onAddTeam()
-  }
+  }, [onAddTeam])
 
-  const handleLogoSelect = (emoji) => {
+  const handleLogoSelect = useCallback((emoji) => {
     setNewTeamLogo(emoji)
-  }
+  }, [setNewTeamLogo])
 
-  const handleColorSelect = (color) => {
+  const handleColorSelect = useCallback((color) => {
     setNewTeamColor(color)
-  }
+  }, [setNewTeamColor])
+
+  // Мемоизируем стили для цветов
+  const colorStyles = useMemo(() => {
+    return TEAM_COLORS.reduce((acc, color) => {
+      acc[color.id] = {
+        background: color.gradient
+      }
+      return acc
+    }, {})
+  }, [])
 
   return (
     <form className="team-form" onSubmit={handleSubmit}>
@@ -62,10 +73,8 @@ function TeamForm({
               className={`color-option ${newTeamColor === color.value ? 'selected' : ''}`}
               onClick={() => handleColorSelect(color.value)}
               title={color.name}
-              style={{ 
-                background: color.gradient,
-                border: newTeamColor === color.value ? '3px solid #000' : '2px solid #ddd'
-              }}
+              style={colorStyles[color.id]}
+              data-color-value={color.value}
             />
           ))}
         </div>
