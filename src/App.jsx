@@ -8,6 +8,7 @@ import GamesList from './components/GamesList'
 import StandingsTable from './components/StandingsTable'
 import Scoreboard from './components/Scoreboard'
 import ConfirmModal from './components/ConfirmModal'
+import MissingTeamModal from './components/MissingTeamModal'
 import { loadDataFromSheets, saveDataToSheets } from './utils/googleSheets'
 import { calculateStandings } from './utils/calculateStats'
 
@@ -24,6 +25,9 @@ function App() {
   const [gameType, setGameType] = useState('regular')
   const [showScoreboard, setShowScoreboard] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showMissingTeamModal, setShowMissingTeamModal] = useState(false)
+  const [missingTeams, setMissingTeams] = useState([])
+  const [pendingGameData, setPendingGameData] = useState(null) // Хранит данные игры, ожидающей подтверждения
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const isInitialLoadRef = useRef(true)
@@ -150,7 +154,50 @@ function App() {
         // 1. Синхронизируем данные с Google Sheets перед добавлением игры
         const freshData = await loadData(false) // Загружаем свежие данные без показа индикатора загрузки
         
-        // 2. Добавляем игру в свежие данные
+        // Проверяем наличие команд в свежих данных
+        const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+        const homeTeamFound = currentTeams.find(t => String(t.id) === String(selectedHomeTeam))
+        const awayTeamFound = currentTeams.find(t => String(t.id) === String(selectedAwayTeam))
+        
+        const missingTeamsList = []
+        if (!homeTeamFound) {
+          const homeTeam = teams.find(t => String(t.id) === String(selectedHomeTeam))
+          if (homeTeam) {
+            missingTeamsList.push(homeTeam)
+          }
+        }
+        if (!awayTeamFound) {
+          const awayTeam = teams.find(t => String(t.id) === String(selectedAwayTeam))
+          if (awayTeam) {
+            missingTeamsList.push(awayTeam)
+          }
+        }
+        
+        // Если есть недостающие команды, показываем модальное окно
+        if (missingTeamsList.length > 0) {
+          setIsSaving(false) // Скрываем оверлей сохранения
+          
+          // Сохраняем данные игры для последующего использования
+          const homeScoreInt = parseInt(homeScore)
+          const awayScoreInt = parseInt(awayScore)
+          
+          setPendingGameData({
+            homeTeamId: String(selectedHomeTeam),
+            awayTeamId: String(selectedAwayTeam),
+            homeScore: homeScoreInt,
+            awayScore: awayScoreInt,
+            gameType: gameType,
+            freshData: freshData,
+            currentTeams: currentTeams
+          })
+          
+          setMissingTeams(missingTeamsList)
+          setShowMissingTeamModal(true)
+          isAddingGameRef.current = false
+          return // Прерываем выполнение, ждем решения пользователя
+        }
+        
+        // 2. Добавляем игру в свежие данные (команды найдены)
         const homeScoreInt = parseInt(homeScore)
         const awayScoreInt = parseInt(awayScore)
         
@@ -166,7 +213,6 @@ function App() {
         
         // Используем свежие данные или текущие, если загрузка не удалась
         const currentGames = freshData.games.length > 0 ? freshData.games : games
-        const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
         const updatedGames = [...currentGames, newGame]
         
         // Обновляем состояние с новой игрой
@@ -177,17 +223,13 @@ function App() {
         
         // Обновляем previousDataRef, чтобы автосохранение не сработало
         previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? currentTeams : teams)),
+          teams: JSON.parse(JSON.stringify(currentTeams)),
           games: JSON.parse(JSON.stringify(updatedGames))
         }
         
         // 3. Сохраняем данные в Google Sheets сразу после добавления игры
-        const standings = calculateStandings(freshData.teams.length > 0 ? currentTeams : teams, updatedGames)
-        await saveDataToSheets(
-          freshData.teams.length > 0 ? currentTeams : teams,
-          updatedGames,
-          standings
-        )
+        const standings = calculateStandings(currentTeams, updatedGames)
+        await saveDataToSheets(currentTeams, updatedGames, standings)
         
         // Очищаем форму
         setSelectedHomeTeam('')
@@ -240,6 +282,88 @@ function App() {
         setIsSaving(false)
       }
     }
+  }
+  
+  // Обработчик подтверждения создания недостающих команд
+  const handleConfirmMissingTeams = async () => {
+    if (!pendingGameData) return
+    
+    setIsSaving(true)
+    setShowMissingTeamModal(false)
+    
+    try {
+      // Создаем недостающие команды заново
+      const updatedTeams = [...pendingGameData.currentTeams]
+      
+      for (const missingTeam of missingTeams) {
+        // Проверяем, не существует ли уже команда с таким ID
+        const existingTeam = updatedTeams.find(t => String(t.id) === String(missingTeam.id))
+        if (!existingTeam) {
+          const newTeam = {
+            id: String(missingTeam.id), // Сохраняем оригинальный ID
+            name: missingTeam.name,
+            logo: missingTeam.logo || '🏒',
+            color: missingTeam.color || '#1e3c72'
+          }
+          updatedTeams.push(newTeam)
+        }
+      }
+      
+      // Создаем игру
+      const newGame = {
+        id: String(Date.now()),
+        homeTeamId: pendingGameData.homeTeamId,
+        awayTeamId: pendingGameData.awayTeamId,
+        homeScore: pendingGameData.homeScore,
+        awayScore: pendingGameData.awayScore,
+        gameType: pendingGameData.gameType,
+        date: new Date().toLocaleDateString('ru-RU')
+      }
+      
+      const currentGames = pendingGameData.freshData.games.length > 0 
+        ? pendingGameData.freshData.games 
+        : games
+      const updatedGames = [...currentGames, newGame]
+      
+      // Обновляем состояние
+      setTeams(updatedTeams)
+      setGames(updatedGames)
+      
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(updatedTeams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+      
+      // Сохраняем данные в Google Sheets
+      const standings = calculateStandings(updatedTeams, updatedGames)
+      await saveDataToSheets(updatedTeams, updatedGames, standings)
+      
+      // Очищаем форму
+      setSelectedHomeTeam('')
+      setSelectedAwayTeam('')
+      setHomeScore('0')
+      setAwayScore('0')
+      setGameType('regular')
+      
+      // Очищаем данные ожидающей игры
+      setPendingGameData(null)
+      setMissingTeams([])
+    } catch (error) {
+      console.error('Ошибка при создании команд и сохранении игры:', error)
+    } finally {
+      setIsSaving(false)
+      isAddingGameRef.current = false
+    }
+  }
+  
+  // Обработчик отмены создания недостающих команд
+  const handleCancelMissingTeams = () => {
+    setShowMissingTeamModal(false)
+    setPendingGameData(null)
+    setMissingTeams([])
+    isAddingGameRef.current = false
+    setIsSaving(false)
   }
 
   const deleteGame = (id) => {
@@ -386,6 +510,13 @@ function App() {
         onConfirm={confirmDeleteAllGames}
         title="Удалить все игры?"
         message={`Вы уверены, что хотите удалить все ${games.length} игр? Это действие нельзя отменить.`}
+      />
+      
+      <MissingTeamModal
+        isOpen={showMissingTeamModal}
+        onClose={handleCancelMissingTeams}
+        onConfirm={handleConfirmMissingTeams}
+        missingTeams={missingTeams}
       />
       </main>
     </div>
