@@ -1,5 +1,6 @@
 // Google Sheets API утилиты
 const SPREADSHEET_ID = '155dQ0YN-WUNGcxRr_IxcJkN_v2gphA0s6c4uR1nExkg'
+const GOOGLE_APPS_SCRIPT_ID = 'AKfycbxC4p08CHSaQ14vPz3TIZA5-mYsklsoIsHj_TZMR56cuYGF7kV3feyYcU2FVF7XkVud'
 // Для записи нужен API ключ с правами на запись или Google Apps Script
 // Для чтения используем публичный CSV экспорт
 
@@ -202,7 +203,6 @@ export async function loadDataFromSheets() {
     
     return { teams, games }
   } catch (error) {
-    console.error('Ошибка загрузки данных из Google Sheets:', error)
     return { teams: [], games: [] }
   }
 }
@@ -249,31 +249,15 @@ export async function saveDataToSheets(teams, games, standings = []) {
     // Используем Google Apps Script Web App URL
     // Нужно создать скрипт и опубликовать его как Web App
     // Инструкция в файле GOOGLE_SHEETS_SETUP.md
-    const scriptUrl = `https://script.google.com/macros/s/AKfycbyVQje3ZmAauNAZaox3lru77zgXOEDkgp2H86AD2bGOhbl2hnLMWhg1brWGFJHE940R/exec`
+    const scriptUrl = `https://script.google.com/macros/s/${GOOGLE_APPS_SCRIPT_ID}/exec`
     
     // Если URL не настроен
-    if (scriptUrl.includes('YOUR_SCRIPT_ID')) {
-      console.log('Для синхронизации с Google Sheets настройте Google Apps Script (см. GOOGLE_SHEETS_SETUP.md)')
+    if (GOOGLE_APPS_SCRIPT_ID.includes('YOUR_SCRIPT_ID')) {
       return false
     }
     
-    // Попытка отправить через Google Apps Script
-    console.log('Отправка данных в Google Sheets...', { 
-      teamsCount: teams.length, 
-      gamesCount: games.length, 
-      standingsCount: standings.length 
-    })
-    console.log('Данные для отправки:', {
-      teams: data.teams.length,
-      games: data.games.length,
-      standings: data.standings.length,
-      gamesData: data.games
-    })
-    
     // Проверяем URL перед отправкой
-    if (!scriptUrl || scriptUrl.includes('YOUR_SCRIPT_ID') || !scriptUrl.includes('script.google.com')) {
-      console.error('❌ URL скрипта не настроен или неверный')
-      console.log('Проверьте файл src/utils/googleSheets.js и убедитесь, что scriptUrl содержит правильный URL вашего Google Apps Script')
+    if (!GOOGLE_APPS_SCRIPT_ID || GOOGLE_APPS_SCRIPT_ID.includes('YOUR_SCRIPT_ID')) {
       return false
     }
     
@@ -288,22 +272,13 @@ export async function saveDataToSheets(teams, games, standings = []) {
         body: JSON.stringify(data)
       })
       
-      console.log('✅ Запрос отправлен в Google Sheets')
       // В режиме no-cors невозможно проверить успешность запроса напрямую,
       // но если данные загружаются из таблицы, значит синхронизация работает
       return true
     } catch (error) {
-      console.error('❌ Ошибка отправки данных в Google Sheets:', error)
-      console.log('Возможные причины:')
-      console.log('1. Google Apps Script не настроен как Web App с доступом "Все, включая анонимных"')
-      console.log('2. Web App не переопубликован после изменений в скрипте')
-      console.log('3. Проверьте, что в настройках Web App выбрано "Выполнять от имени: Меня"')
-      console.log('4. Убедитесь, что скрипт обрабатывает JSON данные правильно')
-      console.log('5. Проверьте URL скрипта в файле src/utils/googleSheets.js')
       return false
     }
   } catch (error) {
-    console.error('Ошибка сохранения данных:', error)
     return false
   }
 }

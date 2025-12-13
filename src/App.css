@@ -538,7 +538,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  will-change: transform;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logo-option:active {
+  transform: scale(0.95);
 }
 
 .logo-option:hover {
@@ -552,6 +559,21 @@
   border-width: 3px;
   box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
   transform: scale(1.05);
+}
+
+/* Оптимизация для мобильных устройств */
+@media (hover: none) and (pointer: coarse) {
+  .logo-option {
+    transition: transform 0.1s ease, border-color 0.1s ease;
+  }
+  
+  .logo-option:hover {
+    transform: none;
+  }
+  
+  .logo-option:active {
+    transform: scale(0.9);
+  }
 }
 
 .custom-logo-input {

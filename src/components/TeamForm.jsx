@@ -22,6 +22,14 @@ function TeamForm({
     setNewTeamLogo(emoji)
   }, [setNewTeamLogo])
 
+  // Мемоизируем обработчики для каждого логотипа
+  const logoHandlers = useMemo(() => {
+    return DEFAULT_TEAM_LOGOS.reduce((acc, logo) => {
+      acc[logo.id] = () => handleLogoSelect(logo.emoji)
+      return acc
+    }, {})
+  }, [handleLogoSelect])
+
   const handleColorSelect = useCallback((color) => {
     setNewTeamColor(color)
   }, [setNewTeamColor])
@@ -54,7 +62,7 @@ function TeamForm({
               key={logo.id}
               type="button"
               className={`logo-option ${newTeamLogo === logo.emoji ? 'selected' : ''}`}
-              onClick={() => handleLogoSelect(logo.emoji)}
+              onClick={logoHandlers[logo.id]}
               title={logo.name}
             >
               {logo.emoji}
