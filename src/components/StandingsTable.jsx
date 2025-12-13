@@ -25,6 +25,7 @@ function StandingsTable({ teams, games }) {
               <th>{t('winsShootoutColumn')}</th>
               <th>{t('lossesRegularColumn')}</th>
               <th>{t('lossesShootoutColumn')}</th>
+              <th>{t('drawsColumn')}</th>
               <th>{t('goalsForColumn')}</th>
               <th>{t('goalsAgainstColumn')}</th>
               <th>{t('goalDiffColumn')}</th>
@@ -50,6 +51,7 @@ function StandingsTable({ teams, games }) {
                 <td>{team.winsOT}</td>
                 <td>{team.losses}</td>
                 <td>{team.lossesOT}</td>
+                <td>{team.draws || 0}</td>
                 <td>{team.goalsFor}</td>
                 <td>{team.goalsAgainst}</td>
                 <td className={team.goalDifference >= 0 ? 'positive' : 'negative'}>
@@ -69,6 +71,7 @@ function StandingsTable({ teams, games }) {
           <li>{t('legendWinsShootout')}</li>
           <li>{t('legendLossesRegular')}</li>
           <li>{t('legendLossesShootout')}</li>
+          <li>{t('legendDraws')}</li>
           <li>{t('legendGoalsFor')}</li>
           <li>{t('legendGoalsAgainst')}</li>
           <li>{t('legendGoalDiff')}</li>

@@ -1045,6 +1045,18 @@
   color: white;
 }
 
+.standings-table tbody tr:nth-child(1) .points {
+  color: #000000;
+}
+
+.standings-table tbody tr:nth-child(2) .points {
+  color: #000000;
+}
+
+.standings-table tbody tr:nth-child(3) .points {
+  color: #000000;
+}
+
 .standings-table td {
   padding: 1rem;
   text-align: center;

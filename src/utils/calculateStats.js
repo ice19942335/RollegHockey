@@ -10,6 +10,7 @@ export const calculateTeamStats = (teamId, games) => {
   let winsOT = 0
   let lossesOT = 0
   let losses = 0
+  let draws = 0
   let goalsFor = 0
   let goalsAgainst = 0
   let points = 0
@@ -42,6 +43,7 @@ export const calculateTeamStats = (teamId, games) => {
       // points не изменяется (0 очков)
     } else {
       // Ничья - 1 очко в любом случае
+      draws++
       points += 1
     }
   })
@@ -55,6 +57,7 @@ export const calculateTeamStats = (teamId, games) => {
     winsOT,
     lossesOT,
     losses,
+    draws,
     goalsFor,
     goalsAgainst,
     goalDifference,
