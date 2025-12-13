@@ -13,6 +13,7 @@ export async function loadDataFromSheets() {
     const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`
     
     const response = await fetch(csvUrl)
+    
     if (!response.ok) {
       throw new Error('Не удалось загрузить данные из таблицы')
     }

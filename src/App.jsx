@@ -26,11 +26,10 @@ function App() {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const saveTimeoutRef = useRef(null)
   const isInitialLoadRef = useRef(true)
   const previousDataRef = useRef({ teams: [], games: [] })
   const hasLoadedRef = useRef(false) // Флаг для предотвращения повторной загрузки
-  const intervalIdRef = useRef(null) // Для хранения ID интервала периодической загрузки
+  const isAddingGameRef = useRef(false) // Флаг для отслеживания процесса добавления игры
   
   // Функция загрузки данных из Google Sheets
   const loadData = async (showLoading = false) => {
@@ -53,6 +52,7 @@ function App() {
       console.error('Ошибка загрузки данных:', error)
       return { teams: [], games: [] }
     } finally {
+      // Всегда сбрасываем флаг загрузки, даже при ошибке
       if (showLoading) {
         setIsLoading(false)
         isInitialLoadRef.current = false
@@ -69,42 +69,13 @@ function App() {
     loadData(true) // Показываем индикатор загрузки только при первой загрузке
   }, [])
   
-  // Функция для запуска/перезапуска интервала периодической загрузки
-  const startAutoLoadInterval = () => {
-    // Очищаем предыдущий интервал, если он существует
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current)
-      intervalIdRef.current = null
-    }
-    
-    // Не начинаем периодическую загрузку, пока не завершилась начальная загрузка или идет сохранение
-    if (isLoading || isSaving) return
-    
-    // Запускаем новый интервал
-    intervalIdRef.current = setInterval(() => {
-      // Не загружаем данные, если идет сохранение
-      if (!isSaving) {
-        loadData(false) // Не показываем индикатор загрузки при периодическом обновлении
-      }
-    }, 10000) // 10 секунд
-  }
-  
-  // Периодическая загрузка данных каждые 10 секунд
-  useEffect(() => {
-    startAutoLoadInterval()
-    
-    return () => {
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current)
-        intervalIdRef.current = null
-      }
-    }
-  }, [isLoading, isSaving])
-  
   // Автосохранение при изменении teams или games (только если данные реально изменились)
   useEffect(() => {
     // Не сохраняем во время начальной загрузки
     if (isLoading || isInitialLoadRef.current) return
+    
+    // Не сохраняем, если идет процесс добавления игры (он сам управляет сохранением)
+    if (isAddingGameRef.current) return
     
     // Сравниваем текущие данные с предыдущими
     const currentDataStr = JSON.stringify({ teams, games })
@@ -119,19 +90,8 @@ function App() {
       games: JSON.parse(JSON.stringify(games))
     }
     
-    // Очищаем предыдущий таймер
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-    
-    // Сбрасываем таймер периодической загрузки при изменении данных
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current)
-      intervalIdRef.current = null
-    }
-    
-    // Устанавливаем новый таймер для сохранения через 2 секунды после последнего изменения
-    saveTimeoutRef.current = setTimeout(async () => {
+    // Сохраняем данные немедленно
+    const saveData = async () => {
       setIsSaving(true)
       try {
         // Вычисляем турнирную таблицу перед сохранением
@@ -141,16 +101,10 @@ function App() {
         console.error('Ошибка сохранения данных:', error)
       } finally {
         setIsSaving(false)
-        // Перезапускаем интервал периодической загрузки после завершения сохранения
-        startAutoLoadInterval()
-      }
-    }, 2000)
-    
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
       }
     }
+    
+    saveData()
   }, [teams, games, isLoading])
 
   const addTeam = () => {
@@ -186,15 +140,14 @@ function App() {
         homeScore !== '' && awayScore !== '' &&
         parseInt(homeScore) >= 0 && parseInt(awayScore) >= 0) {
       
-      // Останавливаем таймер синхронизации перед началом процесса
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current)
-        intervalIdRef.current = null
-      }
+      // Устанавливаем флаг, что идет процесс добавления игры
+      isAddingGameRef.current = true
       
-      // 1. Синхронизируем данные с Google Sheets перед добавлением игры
-      setIsSaving(true) // Показываем индикатор синхронизации
+      // Показываем оверлей сразу
+      setIsSaving(true)
+      
       try {
+        // 1. Синхронизируем данные с Google Sheets перед добавлением игры
         const freshData = await loadData(false) // Загружаем свежие данные без показа индикатора загрузки
         
         // 2. Добавляем игру в свежие данные
@@ -214,12 +167,27 @@ function App() {
         // Используем свежие данные или текущие, если загрузка не удалась
         const currentGames = freshData.games.length > 0 ? freshData.games : games
         const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+        const updatedGames = [...currentGames, newGame]
         
         // Обновляем состояние с новой игрой
-        setGames([...currentGames, newGame])
+        setGames(updatedGames)
         if (freshData.teams.length > 0) {
           setTeams(currentTeams)
         }
+        
+        // Обновляем previousDataRef, чтобы автосохранение не сработало
+        previousDataRef.current = {
+          teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? currentTeams : teams)),
+          games: JSON.parse(JSON.stringify(updatedGames))
+        }
+        
+        // 3. Сохраняем данные в Google Sheets сразу после добавления игры
+        const standings = calculateStandings(freshData.teams.length > 0 ? currentTeams : teams, updatedGames)
+        await saveDataToSheets(
+          freshData.teams.length > 0 ? currentTeams : teams,
+          updatedGames,
+          standings
+        )
         
         // Очищаем форму
         setSelectedHomeTeam('')
@@ -233,7 +201,7 @@ function App() {
         const homeScoreInt = parseInt(homeScore)
         const awayScoreInt = parseInt(awayScore)
         
-        setGames([...games, {
+        const newGame = {
           id: String(Date.now()),
           homeTeamId: String(selectedHomeTeam),
           awayTeamId: String(selectedAwayTeam),
@@ -241,7 +209,24 @@ function App() {
           awayScore: awayScoreInt,
           gameType: gameType,
           date: new Date().toLocaleDateString('ru-RU')
-        }])
+        }
+        
+        const updatedGames = [...games, newGame]
+        setGames(updatedGames)
+        
+        // Обновляем previousDataRef
+        previousDataRef.current = {
+          teams: JSON.parse(JSON.stringify(teams)),
+          games: JSON.parse(JSON.stringify(updatedGames))
+        }
+        
+        // Пытаемся сохранить даже при ошибке синхронизации
+        try {
+          const standings = calculateStandings(teams, updatedGames)
+          await saveDataToSheets(teams, updatedGames, standings)
+        } catch (saveError) {
+          console.error('Ошибка сохранения данных:', saveError)
+        }
         
         setSelectedHomeTeam('')
         setSelectedAwayTeam('')
@@ -249,12 +234,10 @@ function App() {
         setAwayScore('0')
         setGameType('regular')
       } finally {
-        setIsSaving(false) // Скрываем индикатор синхронизации
-        // Перезапускаем таймер синхронизации с дефолтным значением (10 секунд) после завершения процесса
-        // Используем setTimeout, чтобы убедиться, что isSaving уже false
-        setTimeout(() => {
-          startAutoLoadInterval()
-        }, 100)
+        // Сбрасываем флаг процесса добавления игры
+        isAddingGameRef.current = false
+        // Скрываем оверлей только после завершения всего процесса
+        setIsSaving(false)
       }
     }
   }
