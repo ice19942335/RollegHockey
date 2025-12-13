@@ -179,15 +179,6 @@ function GameForm({
         <label>
           <input
             type="radio"
-            value="overtime"
-            checked={gameType === 'overtime'}
-            onChange={(e) => setGameType(e.target.value)}
-          />
-          Овертайм
-        </label>
-        <label>
-          <input
-            type="radio"
             value="shootout"
             checked={gameType === 'shootout'}
             onChange={(e) => setGameType(e.target.value)}
