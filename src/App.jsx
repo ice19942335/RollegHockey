@@ -8,6 +8,7 @@ import GameForm from './components/GameForm'
 import GamesList from './components/GamesList'
 import StandingsTable from './components/StandingsTable'
 import Scoreboard from './components/Scoreboard'
+import ConfirmModal from './components/ConfirmModal'
 
 function App() {
   const [teams, setTeams] = useState([])
@@ -21,6 +22,7 @@ function App() {
   const [awayScore, setAwayScore] = useState('')
   const [gameType, setGameType] = useState('regular')
   const [showScoreboard, setShowScoreboard] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   const addTeam = () => {
     if (newTeamName.trim() && !teams.find(t => t.name === newTeamName.trim())) {
@@ -70,6 +72,19 @@ function App() {
 
   const deleteGame = (id) => {
     setGames(games.filter(g => g.id !== id))
+  }
+
+  const handleDeleteAllGames = () => {
+    setShowConfirmModal(true)
+  }
+
+  const confirmDeleteAllGames = () => {
+    setGames([])
+    setShowConfirmModal(false)
+  }
+
+  const cancelDeleteAllGames = () => {
+    setShowConfirmModal(false)
   }
 
   const openScoreboard = () => {
@@ -172,7 +187,16 @@ function App() {
           games={games} 
           teams={teams} 
           onDeleteGame={deleteGame}
+          onDeleteAllGames={handleDeleteAllGames}
         />
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={cancelDeleteAllGames}
+        onConfirm={confirmDeleteAllGames}
+        title="Удалить все игры?"
+        message={`Вы уверены, что хотите удалить все ${games.length} игр? Это действие нельзя отменить.`}
+      />
       </main>
 
       <Footer />

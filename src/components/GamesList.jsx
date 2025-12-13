@@ -1,11 +1,19 @@
 import GameCard from './GameCard'
 
-function GamesList({ games, teams, onDeleteGame }) {
+function GamesList({ games, teams, onDeleteGame, onDeleteAllGames }) {
   if (games.length === 0) return null
 
   return (
     <section className="section">
-      <h2>Игры ({games.length})</h2>
+      <div className="games-list-header">
+        <h2>Игры ({games.length})</h2>
+        <button 
+          className="btn-delete-all"
+          onClick={onDeleteAllGames}
+        >
+          🗑️ Удалить все игры
+        </button>
+      </div>
       <div className="games-list">
         {games.map(game => {
           const homeTeam = teams.find(t => t.id === game.homeTeamId)

@@ -50,27 +50,49 @@ function GameForm({
     }
   }
 
+  const handleHomeTeamChange = (e) => {
+    const selectedId = e.target.value
+    setSelectedHomeTeam(selectedId)
+    // Если выбрана та же команда, что и гостевая, сбрасываем гостевую
+    if (selectedId === selectedAwayTeam) {
+      setSelectedAwayTeam('')
+    }
+  }
+
+  const handleAwayTeamChange = (e) => {
+    const selectedId = e.target.value
+    setSelectedAwayTeam(selectedId)
+    // Если выбрана та же команда, что и домашняя, сбрасываем домашнюю
+    if (selectedId === selectedHomeTeam) {
+      setSelectedHomeTeam('')
+    }
+  }
+
+  // Фильтруем команды для списков
+  const availableHomeTeams = teams.filter(team => team.id.toString() !== selectedAwayTeam)
+  const availableAwayTeams = teams.filter(team => team.id.toString() !== selectedHomeTeam)
+
   return (
     <form className="game-form" onSubmit={handleSubmit}>
       <div className="game-teams">
         <select
           value={selectedHomeTeam}
-          onChange={(e) => setSelectedHomeTeam(e.target.value)}
+          onChange={handleHomeTeamChange}
           required
         >
           <option value="">Выберите домашнюю команду</option>
-          {teams.map(team => (
+          {availableHomeTeams.map(team => (
             <option key={team.id} value={team.id}>{team.name}</option>
           ))}
         </select>
         <span className="vs">VS</span>
         <select
           value={selectedAwayTeam}
-          onChange={(e) => setSelectedAwayTeam(e.target.value)}
+          onChange={handleAwayTeamChange}
           required
         >
           <option value="">Выберите гостевую команду</option>
-          {teams.map(team => (
+          {availableAwayTeams.map(team => (
             <option key={team.id} value={team.id}>{team.name}</option>
           ))}
         </select>
