@@ -16,13 +16,13 @@ function StandingsTable({ teams, games }) {
         <table className="standings-table">
           <thead>
             <tr>
-              <th>Место</th>
+              <th></th>
               <th>Команда</th>
               <th>И</th>
               <th>ПО</th>
               <th>ПБ</th>
-              <th>Пораж.О</th>
-              <th>Пораж.Б</th>
+              <th>ПОВ</th>
+              <th>ППБ</th>
               <th>ЗГ</th>
               <th>ПГ</th>
               <th>±</th>
@@ -65,8 +65,8 @@ function StandingsTable({ teams, games }) {
           <li>И - Игры</li>
           <li>ПО - Победы в основное время</li>
           <li>ПБ - Победы в буллитах</li>
-          <li>Пораж.О - Поражения в основное время</li>
-          <li>Пораж.Б - Поражения в буллитах</li>
+          <li>ПОВ - Поражения основное время</li>
+          <li>ППБ - Поражения по буллитах</li>
           <li>ЗГ - Забитые голы</li>
           <li>ПГ - Пропущенные голы</li>
           <li>± - Разница голов</li>
