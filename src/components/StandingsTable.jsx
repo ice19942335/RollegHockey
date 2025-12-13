@@ -27,7 +27,6 @@ function StandingsTable({ teams, games }) {
               <th>ПГ</th>
               <th>±</th>
               <th>О</th>
-              <th>%</th>
             </tr>
           </thead>
           <tbody>
@@ -55,7 +54,6 @@ function StandingsTable({ teams, games }) {
                   {team.goalDifference > 0 ? '+' : ''}{team.goalDifference}
                 </td>
                 <td className="points">{team.points}</td>
-                <td>{team.pointsPercentage}%</td>
               </tr>
             ))}
           </tbody>
@@ -64,7 +62,7 @@ function StandingsTable({ teams, games }) {
       <div className="legend">
         <p><strong>Легенда:</strong> И - Игры, В - Победы в основное время, ВО - Победы в овертайме/буллитах, 
         ПО - Поражения в овертайме/буллитах, П - Поражения, ЗГ - Забитые голы, ПГ - Пропущенные голы, 
-        ± - Разница голов, О - Очки, % - Процент очков</p>
+        ± - Разница голов, О - Очки</p>
         <p><strong>Система очков:</strong> Победа в основное время - 3 очка, Победа в овертайме/буллитах - 2 очка, 
         Поражение в овертайме/буллитах - 1 очко, Поражение в основное время - 0 очков</p>
       </div>

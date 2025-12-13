@@ -29,11 +29,11 @@ function GameCard({ game, homeTeam, awayTeam, onDelete }) {
           <span className="score-separator">:</span>
           <span className="score">{game.awayScore}</span>
         </div>
-        <div className="game-team">
-          <span>{awayTeam.name}</span>
+        <div className="game-team game-team-away">
           <span className="game-logo">
             <TeamLogo logo={awayTeam.logo} name={awayTeam.name} />
           </span>
+          <span>{awayTeam.name}</span>
         </div>
       </div>
       <div className="game-info">

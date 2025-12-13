@@ -14,12 +14,16 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {
