@@ -1939,10 +1939,19 @@
 }
 
 @media (max-width: 768px) {
+  body.mobile-menu-open {
+    padding-top: 0;
+  }
+
+  body.mobile-menu-open .app {
+    padding-top: calc(0.5rem + 250px); /* Extra space when mobile menu is open */
+  }
+
   .app {
     padding: 0.5rem;
     padding-top: calc(0.5rem + 100px); /* Increased space for fixed navigation on mobile */
     max-width: 100%;
+    transition: padding-top 0.3s ease;
   }
 
   .header {
@@ -2369,10 +2378,19 @@
 }
 
 @media (max-width: 480px) {
+  body.mobile-menu-open {
+    padding-top: 0;
+  }
+
+  body.mobile-menu-open .app {
+    padding-top: calc(0.25rem + 240px); /* Extra space when mobile menu is open */
+  }
+
   .app {
     padding: 0.25rem;
     padding-top: calc(0.25rem + 90px); /* Increased space for fixed navigation on small mobile */
     max-width: 100%;
+    transition: padding-top 0.3s ease;
   }
 
   body {

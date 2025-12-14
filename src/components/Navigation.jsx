@@ -49,6 +49,19 @@ function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onC
     }
   }, [])
 
+  // Add/remove class to body when mobile menu is open
+  useEffect(() => {
+    if (isMobile && isMobileMenuOpen) {
+      document.body.classList.add('mobile-menu-open')
+    } else {
+      document.body.classList.remove('mobile-menu-open')
+    }
+    
+    return () => {
+      document.body.classList.remove('mobile-menu-open')
+    }
+  }, [isMobile, isMobileMenuOpen])
+
   useEffect(() => {
     const checkWrap = () => {
       if (!containerRef.current) return
