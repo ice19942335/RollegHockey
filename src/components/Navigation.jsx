@@ -1,12 +1,23 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLanguage } from '../i18n/LanguageContext'
+import NavItem from './NavItem'
+import { menuItems } from '../config/menuItems'
 
 function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onClearDatabase }) {
   const { t, language, changeLanguage } = useLanguage()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isVertical, setIsVertical] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const dropdownRef = useRef(null)
   const containerRef = useRef(null)
+
+  const menuHandlers = {
+    createTournament: onCreateTournament,
+    tournamentsList: onTournamentsList,
+    playoffsList: onPlayoffsList,
+    clearDatabase: onClearDatabase
+  }
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -22,6 +33,23 @@ function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onC
   }, [])
 
   useEffect(() => {
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+      if (window.innerWidth > 768) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+    }
+  }, [])
+
+  useEffect(() => {
     const checkWrap = () => {
       if (!containerRef.current) return
       
@@ -32,18 +60,20 @@ function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onC
       const items = wrapper.querySelectorAll('.nav-item')
       if (items.length === 0) return
       
-      // Check if items are wrapping
-      const firstItemTop = items[0].offsetTop
-      let isWrapping = false
-      
-      for (let i = 1; i < items.length; i++) {
-        if (items[i].offsetTop > firstItemTop) {
-          isWrapping = true
-          break
+      // Check if items are wrapping (only for desktop)
+      if (window.innerWidth > 768) {
+        const firstItemTop = items[0].offsetTop
+        let isWrapping = false
+        
+        for (let i = 1; i < items.length; i++) {
+          if (items[i].offsetTop > firstItemTop) {
+            isWrapping = true
+            break
+          }
         }
+        
+        setIsVertical(isWrapping)
       }
-      
-      setIsVertical(isWrapping)
     }
 
     checkWrap()
@@ -76,7 +106,7 @@ function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onC
     <nav className="navigation">
       <div 
         ref={containerRef}
-        className={`navigation-container ${isVertical ? 'navigation-vertical' : ''}`}
+        className={`navigation-container ${isVertical ? 'navigation-vertical' : ''} ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}
       >
         <div className="language-selector" ref={dropdownRef}>
           <button
@@ -106,31 +136,33 @@ function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onC
             </div>
           )}
         </div>
-        <div className={`nav-items-wrapper ${isVertical ? 'nav-items-vertical' : ''}`}>
-          <button 
-            className="nav-item"
-            onClick={onCreateTournament}
+        {isMobile && (
+          <button
+            className="mobile-menu-toggle"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
           >
-            {t('menuCreateTournament')}
+            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`}></span>
+            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`}></span>
+            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`}></span>
           </button>
-          <button 
-            className="nav-item"
-            onClick={onTournamentsList}
-          >
-            {t('menuTournamentsList')}
-          </button>
-          <button 
-            className="nav-item"
-            onClick={onPlayoffsList}
-          >
-            {t('menuPlayoffsList')}
-          </button>
-          <button 
-            className="nav-item nav-item-danger"
-            onClick={onClearDatabase}
-          >
-            {t('menuClearDatabase')}
-          </button>
+        )}
+        <div className={`nav-items-wrapper ${isVertical ? 'nav-items-vertical' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+          {menuItems.map(item => (
+            <NavItem
+              key={item.id}
+              onClick={(e) => {
+                menuHandlers[item.id](e)
+                if (isMobile) {
+                  setIsMobileMenuOpen(false)
+                }
+              }}
+              isDanger={item.isDanger}
+            >
+              {t(item.translationKey)}
+            </NavItem>
+          ))}
         </div>
       </div>
     </nav>
