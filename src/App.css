@@ -4095,18 +4095,94 @@
   gap: 1rem;
   flex: 1;
   min-width: 200px;
-  flex-wrap: wrap;
+}
+
+.pending-game-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.pending-game-teams-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .pending-game-teams {
   font-weight: 600;
   color: #333;
+  text-align: center;
+}
+
+.pending-game-score-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.score-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.score-separator {
+  font-weight: 700;
+  color: #FFA000;
+  font-size: 1.1rem;
+  margin: 0 0.25rem;
 }
 
 .pending-game-score {
   font-weight: 700;
   color: #FFA000;
   font-size: 1.1rem;
+  min-width: 30px;
+  text-align: center;
+}
+
+.btn-score-increase,
+.btn-score-decrease {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  line-height: 1;
+}
+
+.btn-score-decrease {
+  background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.btn-score-increase:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.btn-score-decrease:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+.btn-score-increase:active,
+.btn-score-decrease:active {
+  transform: translateY(0);
 }
 
 .pending-game-type {
@@ -4120,6 +4196,12 @@
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.open-scoreboard-btn {
+  padding: 0.75rem 1.5rem;
+  white-space: nowrap;
 }
 
 .approve-game-btn {
@@ -4128,7 +4210,7 @@
 }
 
 .btn-delete-all-pending-games {
-  background: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
+  background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -4137,13 +4219,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
   white-space: nowrap;
 }
 
 .btn-delete-all-pending-games:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
 }
 
 .btn-delete-all-pending-games:active {
@@ -4151,7 +4234,7 @@
 }
 
 .btn-delete-pending-game {
-  background: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
+  background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
   color: white;
   border: none;
   padding: 0.5rem 0.75rem;
@@ -4159,7 +4242,7 @@
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4169,7 +4252,8 @@
 
 .btn-delete-pending-game:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
 }
 
 .btn-delete-pending-game:active {
@@ -4184,13 +4268,22 @@
 
   .pending-game-info {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0.5rem;
+  }
+
+  .pending-game-main {
+    width: 100%;
+  }
+
+  .pending-game-teams-wrapper {
+    align-items: center;
   }
 
   .pending-game-actions {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .pending-games-header {

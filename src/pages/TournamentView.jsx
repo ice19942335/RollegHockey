@@ -32,10 +32,13 @@ function TournamentView() {
   const [awayScore, setAwayScore] = useState('0')
   const [gameType, setGameType] = useState('regular')
   const [showScoreboard, setShowScoreboard] = useState(false)
+  const [pendingScoreboardGame, setPendingScoreboardGame] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showMissingTeamModal, setShowMissingTeamModal] = useState(false)
   const [showDeleteTeamModal, setShowDeleteTeamModal] = useState(false)
   const [showDeleteAllTeamsModal, setShowDeleteAllTeamsModal] = useState(false)
+  const [showDeletePendingGameModal, setShowDeletePendingGameModal] = useState(false)
+  const [pendingGameToDelete, setPendingGameToDelete] = useState(null)
   const [teamToDelete, setTeamToDelete] = useState(null)
   const [relatedGamesToDelete, setRelatedGamesToDelete] = useState([])
   const [missingTeams, setMissingTeams] = useState([])
@@ -49,6 +52,7 @@ function TournamentView() {
   const previousDataRef = useRef({ teams: [], games: [] })
   const hasLoadedRef = useRef(false)
   const isAddingGameRef = useRef(false)
+  const isUpdatingScoreRef = useRef(false)
   const [tournamentNotFound, setTournamentNotFound] = useState(false)
   const [tournamentName, setTournamentName] = useState('')
   const [tournamentDescription, setTournamentDescription] = useState('')
@@ -592,8 +596,18 @@ function TournamentView() {
     }
   }
 
+  // Обработчик открытия модального окна удаления pending игры
+  const handleDeletePendingGameClick = (game) => {
+    setPendingGameToDelete(game)
+    setShowDeletePendingGameModal(true)
+  }
+
   // Обработчик удаления одной pending игры
   const handleDeletePendingGame = async (gameId) => {
+    // Закрываем модальное окно подтверждения сразу после подтверждения
+    setShowDeletePendingGameModal(false)
+    setPendingGameToDelete(null)
+    
     setIsSaving(true) // Блокируем приложение
     try {
       // Загружаем свежие данные
@@ -624,6 +638,12 @@ function TournamentView() {
     } finally {
       setIsSaving(false) // Снимаем блокировку
     }
+  }
+
+  // Отмена удаления pending игры
+  const cancelDeletePendingGame = () => {
+    setShowDeletePendingGameModal(false)
+    setPendingGameToDelete(null)
   }
 
   // Обработчик удаления всех pending игр
@@ -658,6 +678,38 @@ function TournamentView() {
     } finally {
       setIsSaving(false) // Снимаем блокировку
     }
+  }
+
+  // Обработчик изменения счета pending игры
+  const handleUpdatePendingGameScore = (gameId, teamType, delta) => {
+    // Устанавливаем флаг, чтобы предотвратить автосохранение
+    isUpdatingScoreRef.current = true
+    
+    // Обновляем счет только локально, без синхронизации с Google Sheets
+    const updatedGames = games.map(game => {
+      if (game.id === gameId) {
+        const newHomeScore = teamType === 'home' 
+          ? Math.max(0, (game.homeScore || 0) + delta)
+          : (game.homeScore || 0)
+        const newAwayScore = teamType === 'away'
+          ? Math.max(0, (game.awayScore || 0) + delta)
+          : (game.awayScore || 0)
+        return { ...game, homeScore: newHomeScore, awayScore: newAwayScore }
+      }
+      return game
+    })
+    setGames(updatedGames)
+    
+    // Обновляем previousDataRef, чтобы предотвратить автосохранение
+    previousDataRef.current = {
+      teams: JSON.parse(JSON.stringify(teams)),
+      games: JSON.parse(JSON.stringify(updatedGames))
+    }
+    
+    // Сбрасываем флаг после небольшой задержки
+    setTimeout(() => {
+      isUpdatingScoreRef.current = false
+    }, 100)
   }
 
   const deleteGame = (id) => {
@@ -717,8 +769,14 @@ function TournamentView() {
     }
   }
 
+  const openPendingGameScoreboard = (game) => {
+    setPendingScoreboardGame(game)
+    setShowScoreboard(true)
+  }
+
   const closeScoreboard = () => {
     setShowScoreboard(false)
+    setPendingScoreboardGame(null)
   }
 
   const incrementHomeScore = () => {
@@ -784,20 +842,48 @@ function TournamentView() {
           </div>
         </div>
       )}
-      {showScoreboard && (
-        <Scoreboard
-          homeTeam={homeTeam}
-          awayTeam={awayTeam}
-          homeScore={homeScore || 0}
-          awayScore={awayScore || 0}
-          gameType={gameType}
-          onClose={closeScoreboard}
-          onIncrementHomeScore={incrementHomeScore}
-          onDecrementHomeScore={decrementHomeScore}
-          onIncrementAwayScore={incrementAwayScore}
-          onDecrementAwayScore={decrementAwayScore}
-        />
-      )}
+      {showScoreboard && (() => {
+        // Если открыто табло для pending игры, используем данные игры
+        if (pendingScoreboardGame) {
+          const pendingHomeTeam = teams.find(t => String(t.id) === String(pendingScoreboardGame.homeTeamId))
+          const pendingAwayTeam = teams.find(t => String(t.id) === String(pendingScoreboardGame.awayTeamId))
+          
+          if (!pendingHomeTeam || !pendingAwayTeam) {
+            return null
+          }
+
+          return (
+            <Scoreboard
+              homeTeam={pendingHomeTeam}
+              awayTeam={pendingAwayTeam}
+              homeScore={pendingScoreboardGame.homeScore || 0}
+              awayScore={pendingScoreboardGame.awayScore || 0}
+              gameType={pendingScoreboardGame.gameType || 'regular'}
+              onClose={closeScoreboard}
+              onIncrementHomeScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'home', 1)}
+              onDecrementHomeScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'home', -1)}
+              onIncrementAwayScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'away', 1)}
+              onDecrementAwayScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'away', -1)}
+            />
+          )
+        }
+
+        // Иначе используем данные из формы
+        return (
+          <Scoreboard
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
+            homeScore={homeScore || 0}
+            awayScore={awayScore || 0}
+            gameType={gameType}
+            onClose={closeScoreboard}
+            onIncrementHomeScore={incrementHomeScore}
+            onDecrementHomeScore={decrementHomeScore}
+            onIncrementAwayScore={incrementAwayScore}
+            onDecrementAwayScore={decrementAwayScore}
+          />
+        )
+      })()}
       <Header />
 
       <main className="main">
@@ -897,17 +983,66 @@ function TournamentView() {
                   return (
                     <div key={game.id} className="pending-game-item">
                       <div className="pending-game-info">
-                        <span className="pending-game-teams">
-                          {homeTeam.name} vs {awayTeam.name}
-                        </span>
-                        <span className="pending-game-score">
-                          {game.homeScore} : {game.awayScore}
-                        </span>
-                        {game.gameType === 'shootout' && (
-                          <span className="pending-game-type">({t('gameTypeShootout')})</span>
-                        )}
+                        <div className="pending-game-main">
+                          <div className="pending-game-teams-wrapper">
+                            <span className="pending-game-teams">
+                              {homeTeam.name} vs {awayTeam.name}
+                            </span>
+                            {game.gameType === 'shootout' && (
+                              <span className="pending-game-type">({t('gameTypeShootout')})</span>
+                            )}
+                          </div>
+                          <div className="pending-game-score-controls">
+                            <div className="score-control-group">
+                              <button
+                                className="btn-score-decrease"
+                                onClick={() => handleUpdatePendingGameScore(game.id, 'home', -1)}
+                                title={t('decreaseScore')}
+                              >
+                                −
+                              </button>
+                              <button
+                                className="btn-score-increase"
+                                onClick={() => handleUpdatePendingGameScore(game.id, 'home', 1)}
+                                title={t('increaseScore')}
+                              >
+                                +
+                              </button>
+                              <span className="pending-game-score">
+                                {game.homeScore || 0}
+                              </span>
+                            </div>
+                            <span className="score-separator">:</span>
+                            <div className="score-control-group">
+                            <span className="pending-game-score">
+                                {game.awayScore || 0}
+                              </span>
+                              <button
+                                className="btn-score-decrease"
+                                onClick={() => handleUpdatePendingGameScore(game.id, 'away', -1)}
+                                title={t('decreaseScore')}
+                              >
+                                −
+                              </button>
+                              <button
+                                className="btn-score-increase"
+                                onClick={() => handleUpdatePendingGameScore(game.id, 'away', 1)}
+                                title={t('increaseScore')}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       <div className="pending-game-actions">
+                        <button
+                          className="btn-primary open-scoreboard-btn"
+                          onClick={() => openPendingGameScoreboard(game)}
+                          title={t('openScoreboard')}
+                        >
+                          {t('openScoreboard')}
+                        </button>
                         <button
                           className="btn-primary approve-game-btn"
                           onClick={() => handleApproveGame(game.id)}
@@ -916,7 +1051,7 @@ function TournamentView() {
                         </button>
                         <button
                           className="btn-delete-pending-game"
-                          onClick={() => handleDeletePendingGame(game.id)}
+                          onClick={() => handleDeletePendingGameClick(game)}
                           title={t('deletePendingGame')}
                         >
                           🗑️
@@ -951,6 +1086,14 @@ function TournamentView() {
         onConfirm={confirmDeleteAllTeams}
         title={t('deleteAllTeamsTitle')}
         message={t('deleteAllTeamsMessage').replace('{teamsCount}', teams.length).replace('{gamesCount}', games.length)}
+      />
+
+      <ConfirmModal
+        isOpen={showDeletePendingGameModal}
+        onClose={cancelDeletePendingGame}
+        onConfirm={() => pendingGameToDelete && handleDeletePendingGame(pendingGameToDelete.id)}
+        title={t('deletePendingGameTitle')}
+        message={t('deletePendingGameMessage')}
       />
       
       <MissingTeamModal
