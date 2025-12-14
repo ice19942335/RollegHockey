@@ -149,6 +149,10 @@ export const translations = {
     removeTeam: 'Удалить',
     selectedTeams: 'Выбранные команды',
     noTeamsSelected: 'Команды не выбраны',
+    approveGame: 'Утвердить результат',
+    pendingGames: 'Игры в процессе',
+    noPendingGames: 'Нет игр в процессе',
+    addAllTeams: 'Добавить все команды',
   },
   lv: {
     // Header
@@ -300,6 +304,10 @@ export const translations = {
     removeTeam: 'Dzēst',
     selectedTeams: 'Izvēlētās komandas',
     noTeamsSelected: 'Komandas nav izvēlētas',
+    approveGame: 'Apstiprināt rezultātu',
+    pendingGames: 'Spēles procesā',
+    noPendingGames: 'Nav spēļu procesā',
+    addAllTeams: 'Pievienot visas komandas',
   }
 }
 

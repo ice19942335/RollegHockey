@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import '../App.css'
 import Header from '../components/Header'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -13,12 +13,13 @@ import Scoreboard from '../components/Scoreboard'
 import ConfirmModal from '../components/ConfirmModal'
 import MissingTeamModal from '../components/MissingTeamModal'
 import DeleteTeamModal from '../components/DeleteTeamModal'
-import { loadDataFromSheets, saveDataToSheets } from '../utils/googleSheets'
+import { loadDataFromSheets, saveDataToSheets, loadTournamentsList } from '../utils/googleSheets'
 import { calculateStandings } from '../utils/calculateStats'
 
 function TournamentView() {
   const { id: tournamentId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useLanguage()
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
@@ -48,6 +49,7 @@ function TournamentView() {
   const hasLoadedRef = useRef(false)
   const isAddingGameRef = useRef(false)
   const [tournamentNotFound, setTournamentNotFound] = useState(false)
+  const [tournamentName, setTournamentName] = useState('')
   
   // Функция загрузки данных из Google Sheets для конкретного турнира
   const loadData = async (showLoading = false) => {
@@ -88,7 +90,28 @@ function TournamentView() {
     hasLoadedRef.current = true
     
     loadData(true)
-  }, [tournamentId])
+    
+    // Получаем название турнира из state навигации (если есть)
+    const tournamentNameFromState = location.state?.tournamentName
+    if (tournamentNameFromState) {
+      setTournamentName(tournamentNameFromState)
+    } else {
+      // Если название не передано через state, загружаем через API (fallback)
+      const loadTournamentName = async () => {
+        try {
+          const tournaments = await loadTournamentsList()
+          const tournament = tournaments.find(t => t.id === tournamentId)
+          if (tournament && tournament.name) {
+            setTournamentName(tournament.name)
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки названия турнира:', error)
+        }
+      }
+      
+      loadTournamentName()
+    }
+  }, [tournamentId, location.state])
   
   // Счетчик секунд при сохранении
   useEffect(() => {
@@ -422,6 +445,77 @@ function TournamentView() {
     setIsSaving(false)
   }
 
+  // Обработчик генерации игр из TournamentRoundGenerator
+  const handleGamesGenerated = async (newGames) => {
+    try {
+      // Загружаем свежие данные
+      const freshData = await loadData(false)
+      const currentGames = freshData.games.length > 0 ? freshData.games : games
+      
+      // Объединяем существующие игры с новыми
+      const updatedGames = [...currentGames, ...newGames]
+      
+      // Обновляем состояние
+      setGames(updatedGames)
+      if (freshData.teams.length > 0) {
+        setTeams(freshData.teams)
+      }
+      
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+      
+      // Сохраняем в Google Sheets
+      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+      const standings = calculateStandings(currentTeams, updatedGames)
+      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+    } catch (error) {
+      console.error('Ошибка при сохранении сгенерированных игр:', error)
+      throw error
+    }
+  }
+
+  // Обработчик утверждения pending игры
+  const handleApproveGame = async (gameId) => {
+    setIsSaving(true)
+    try {
+      // Загружаем свежие данные
+      const freshData = await loadData(false)
+      const currentGames = freshData.games.length > 0 ? freshData.games : games
+      
+      // Находим игру и меняем флаг pending на false
+      const updatedGames = currentGames.map(game => {
+        if (game.id === gameId) {
+          return { ...game, pending: false }
+        }
+        return game
+      })
+      
+      // Обновляем состояние
+      setGames(updatedGames)
+      if (freshData.teams.length > 0) {
+        setTeams(freshData.teams)
+      }
+      
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+      
+      // Сохраняем в Google Sheets
+      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+      const standings = calculateStandings(currentTeams, updatedGames)
+      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+    } catch (error) {
+      console.error('Ошибка при утверждении игры:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const deleteGame = (id) => {
     setGames(games.filter(g => g.id !== id))
   }
@@ -529,6 +623,12 @@ function TournamentView() {
       <Header />
 
       <main className="main">
+        {tournamentName && (
+          <section className="section tournament-title-section">
+            <h1 className="tournament-title">{tournamentName}</h1>
+          </section>
+        )}
+        
         <section className="section">
           <h2>{t('addTeamSection')}</h2>
           <TeamForm
@@ -548,7 +648,11 @@ function TournamentView() {
         </section>
 
         <section className="section">
-          <TournamentRoundGenerator teams={teams} />
+          <TournamentRoundGenerator 
+            teams={teams} 
+            tournamentId={tournamentId}
+            onGamesGenerated={handleGamesGenerated}
+          />
         </section>
 
         {teams.length >= 2 && (
@@ -572,10 +676,56 @@ function TournamentView() {
           </section>
         )}
 
-        <StandingsTable teams={teams} games={games} />
+        {/* Фильтруем только активные игры (не pending) для турнирной таблицы */}
+        {(() => {
+          const activeGames = games.filter(g => !g.pending || g.pending === false)
+          return <StandingsTable teams={teams} games={activeGames} />
+        })()}
+
+        {/* Секция для pending games */}
+        {(() => {
+          const pendingGames = games.filter(g => g.pending === true)
+          if (pendingGames.length === 0) return null
+          
+          return (
+            <section className="section">
+              <h2>{t('pendingGames')}</h2>
+              <div className="pending-games-list">
+                {pendingGames.map(game => {
+                  const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
+                  const awayTeam = teams.find(t => String(t.id) === String(game.awayTeamId))
+                  
+                  if (!homeTeam || !awayTeam) return null
+                  
+                  return (
+                    <div key={game.id} className="pending-game-item">
+                      <div className="pending-game-info">
+                        <span className="pending-game-teams">
+                          {homeTeam.name} vs {awayTeam.name}
+                        </span>
+                        <span className="pending-game-score">
+                          {game.homeScore} : {game.awayScore}
+                        </span>
+                        {game.gameType === 'shootout' && (
+                          <span className="pending-game-type">({t('gameTypeShootout')})</span>
+                        )}
+                      </div>
+                      <button
+                        className="btn-primary approve-game-btn"
+                        onClick={() => handleApproveGame(game.id)}
+                      >
+                        {t('approveGame')}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })()}
 
         <GamesList 
-          games={games} 
+          games={games.filter(g => !g.pending || g.pending === false)} 
           teams={teams} 
           onDeleteGame={deleteGame}
           onDeleteAllGames={handleDeleteAllGames}

@@ -127,8 +127,8 @@ function TournamentList() {
     navigate('/create')
   }
 
-  const handleTournamentClick = (tournamentId) => {
-    navigate(`/t/${tournamentId}`)
+  const handleTournamentClick = (tournamentId, tournamentName) => {
+    navigate(`/t/${tournamentId}`, { state: { tournamentName } })
   }
 
   const handleDeleteClick = (e, tournament) => {
@@ -230,7 +230,7 @@ function TournamentList() {
               <div
                 key={tournament.id}
                 className="tournament-card"
-                onClick={() => handleTournamentClick(tournament.id)}
+                onClick={() => handleTournamentClick(tournament.id, tournament.name)}
               >
                 <button
                   className="tournament-delete-btn"

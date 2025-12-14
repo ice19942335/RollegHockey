@@ -62,7 +62,7 @@ function createTournamentSheet(tournamentId, tournamentData) {
   sheet.appendRow(['id', 'name', 'logo', 'color']);
   sheet.appendRow(['']);
   sheet.appendRow(['GAMES']);
-  sheet.appendRow(['id', 'homeTeamId', 'awayTeamId', 'homeScore', 'awayScore', 'gameType', 'date']);
+  sheet.appendRow(['id', 'homeTeamId', 'awayTeamId', 'homeScore', 'awayScore', 'gameType', 'date', 'pending']);
   
   // Обновляем лист "Tournaments" если он существует
   let tournamentsSheet = spreadsheet.getSheetByName('Tournaments');
@@ -202,7 +202,7 @@ function doPost(e) {
     
     // Записываем игры
     sheet.appendRow(['GAMES']);
-    sheet.appendRow(['id', 'homeTeamId', 'awayTeamId', 'homeScore', 'awayScore', 'gameType', 'date']);
+    sheet.appendRow(['id', 'homeTeamId', 'awayTeamId', 'homeScore', 'awayScore', 'gameType', 'date', 'pending']);
     if (data.games && Array.isArray(data.games) && data.games.length > 0) {
       data.games.forEach(game => {
         try {
@@ -213,7 +213,8 @@ function doPost(e) {
             game.homeScore || 0,
             game.awayScore || 0,
             game.gameType || 'regular',
-            game.date || ''
+            game.date || '',
+            game.pending === true ? 'true' : 'false'
           ]);
         } catch (gameError) {
           // Игнорируем ошибки записи игры
@@ -333,9 +334,14 @@ id | name | logo | color
 #### Секция GAMES:
 ```
 GAMES
-id | homeTeamId | awayTeamId | homeScore | awayScore | gameType | date
-1  | 1          | 2          | 3         | 2         | regular  | 13.12.2025
+id | homeTeamId | awayTeamId | homeScore | awayScore | gameType | date | pending
+1  | 1          | 2          | 3         | 2         | regular  | 13.12.2025 | false
+2  | 1          | 3          | 0         | 0         | regular  | 14.12.2025 | true
 ```
+
+**Поле `pending`**:
+- `true` - игра в процессе, не учитывается в турнирной таблице
+- `false` или отсутствует - обычная игра, учитывается в турнирной таблице
 
 **Важно**: Название листа должно быть точно `turnament_<id>` (без дополнительных слов, без пробелов).
 

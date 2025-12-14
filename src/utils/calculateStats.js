@@ -1,7 +1,9 @@
 export const calculateTeamStats = (teamId, games) => {
   // Преобразуем teamId в строку для единообразия
   const teamIdStr = String(teamId)
-  const teamGames = games.filter(g => 
+  // Фильтруем только активные игры (не pending)
+  const activeGames = games.filter(g => !g.pending || g.pending === false)
+  const teamGames = activeGames.filter(g => 
     String(g.homeTeamId) === teamIdStr || String(g.awayTeamId) === teamIdStr
   )
 

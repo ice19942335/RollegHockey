@@ -196,8 +196,8 @@ export async function loadDataFromSheets(tournamentId = null) {
         const values = parseCSVLine(line)
         // Убираем пустые значения в конце массива
         const cleanValues = values.filter((v, index) => {
-          // Оставляем первые 7 значений (id, homeTeamId, awayTeamId, homeScore, awayScore, gameType, date) или непустые значения
-          return index < 7 || v.trim() !== ''
+          // Оставляем первые 8 значений (id, homeTeamId, awayTeamId, homeScore, awayScore, gameType, date, pending) или непустые значения
+          return index < 8 || v.trim() !== ''
         })
         
         // Проверяем, что это действительно строка с данными игры
@@ -221,6 +221,11 @@ export async function loadDataFromSheets(tournamentId = null) {
             continue
           }
           
+          // Парсим поле pending (8-е значение, индекс 7)
+          // Если значение 'true' (строка), то pending = true, иначе false
+          const pendingValue = cleanValues[7] ? cleanValues[7].trim().toLowerCase() : ''
+          const pending = pendingValue === 'true' || pendingValue === '1'
+          
           const game = {
             id: String(cleanValues[0].trim()),
             homeTeamId: String(homeTeamId),
@@ -228,7 +233,8 @@ export async function loadDataFromSheets(tournamentId = null) {
             homeScore: parseInt(cleanValues[3]) || 0,
             awayScore: parseInt(cleanValues[4]) || 0,
             gameType: (cleanValues[5] || 'regular').trim(),
-            date: (cleanValues[6] || new Date().toLocaleDateString('ru-RU')).trim()
+            date: (cleanValues[6] || new Date().toLocaleDateString('ru-RU')).trim(),
+            pending: pending
           }
           games.push(game)
         }
@@ -269,7 +275,8 @@ export async function saveDataToSheets(teams, games, standings = [], tournamentI
         homeScore: game.homeScore,
         awayScore: game.awayScore,
         gameType: game.gameType,
-        date: game.date
+        date: game.date,
+        pending: game.pending !== undefined ? game.pending : false
       })),
       standings: standings.map((team, index) => ({
         position: index + 1,
