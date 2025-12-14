@@ -49,8 +49,13 @@ export async function loadDataFromSheets(tournamentId = null) {
       credentials: 'omit'
     })
     
-    if (!response.ok) {
-      throw new Error('Не удалось загрузить данные из таблицы')
+    // Обрабатываем ошибки доступа к таблице
+    if (!response.ok || response.status !== 200) {
+      if (response.status === 403 || response.status === 400) {
+        console.warn('⚠️ [loadDataFromSheets] Таблица недоступна (возможно, приватная или неправильно настроена):', response.status)
+      }
+      // Возвращаем пустые данные вместо ошибки, чтобы приложение продолжало работать
+      return { teams: [], games: [] }
     }
     
     // Получаем данные как ArrayBuffer для правильной обработки кодировки
@@ -395,33 +400,14 @@ async function getSheetsList() {
     }
     
     // Способ 2: Пробуем получить через Google Sheets API v4
-    // Для публичных таблиц может работать без API ключа
+    // Для публичных таблиц может работать без API ключа, но обычно требует аутентификацию
+    // Пропускаем этот метод, так как он требует API ключ или OAuth
+    // Используем только Google Apps Script или fallback метод перебора gid
     try {
-      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`
-      const response = await fetch(apiUrl)
-      
-      if (response.ok) {
-        const data = await response.json()
-        const sheets = []
-        
-        if (data.sheets && Array.isArray(data.sheets)) {
-          data.sheets.forEach((sheet) => {
-            if (sheet.properties) {
-              sheets.push({
-                name: sheet.properties.title,
-                gid: sheet.properties.sheetId
-              })
-            }
-          })
-          
-          if (sheets.length > 0) {
-            return sheets
-          }
-        }
-      }
+      // API v4 обычно требует аутентификацию, поэтому пропускаем
+      // Если нужен этот метод, нужно добавить API ключ или использовать OAuth
     } catch (error) {
-      // Если API v4 не работает (требует ключ или OAuth), возвращаем null
-      // Будет использован fallback метод
+      // Пропускаем API v4 метод
     }
     
     // Если оба способа не сработали, возвращаем null
@@ -474,7 +460,8 @@ export async function loadTournamentsList() {
               credentials: 'omit'
             })
             
-            if (response.ok) {
+            // Пропускаем ошибки 400 (Bad Request) и 403 (Forbidden) - таблица может быть приватной
+            if (response.ok && response.status === 200) {
               const arrayBuffer = await response.arrayBuffer()
               const decoder = new TextDecoder('utf-8')
               const csvText = decoder.decode(arrayBuffer)
@@ -514,7 +501,9 @@ export async function loadTournamentsList() {
         credentials: 'omit'
       })
       
-      if (!response.ok) {
+      // Пропускаем ошибки 400 (Bad Request) и 403 (Forbidden) - таблица может быть приватной
+      if (!response.ok || response.status !== 200) {
+        console.warn('⚠️ [loadTournamentsList] Не удалось загрузить CSV (возможно, таблица приватная):', response.status)
         return tournaments
       }
       
@@ -717,7 +706,8 @@ export async function loadTournamentsList() {
             credentials: 'omit'
           })
           
-          if (!response.ok || response.status === 400) {
+          // Пропускаем ошибки 400 (Bad Request) и 403 (Forbidden) - таблица может быть приватной или лист не существует
+          if (!response.ok || response.status === 400 || response.status === 403) {
             consecutiveErrors++
             if (consecutiveErrors >= maxConsecutiveErrors) {
               break
