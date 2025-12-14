@@ -534,16 +534,9 @@ function App() {
   }
 
   const handleClearDatabase = () => {
-    // Clear all teams and games
-    const totalItems = teams.length + games.length
-    const confirmMessage = totalItems > 0 
-      ? `${t('deleteAllGamesMessage', { count: totalItems })}\n\n${t('clearDatabaseConfirm')}`
-      : t('clearDatabaseEmpty')
-    
-    if (window.confirm(confirmMessage)) {
-      setTeams([])
-      setGames([])
-    }
+    // TODO: Implement clear database functionality
+    console.log('Clear database clicked')
+    alert(t('menuClearDatabase') + ' - Функция в разработке')
   }
 
   const homeTeam = teams.find(t => String(t.id) === String(selectedHomeTeam))
