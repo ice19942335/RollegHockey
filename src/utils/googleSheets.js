@@ -1,8 +1,7 @@
 // Google Sheets API утилиты
 import { getSpreadsheetId, getGoogleAppsScriptId } from '../config/googleSheets.js'
 
-// Для записи нужен API ключ с правами на запись или Google Apps Script
-// Для чтения используем публичный CSV экспорт
+// Для записи и чтения используем Google Apps Script
 
 /**
  * Загружает данные из Google Sheets для конкретного турнира
@@ -37,66 +36,54 @@ export async function loadDataFromSheets(tournamentId = null) {
       }
     }
     
-    // Пробуем загрузить данные через CSV экспорт
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
+    // Пробуем сначала через Google Apps Script, затем fallback к CSV экспорту
+    const scriptId = getGoogleAppsScriptId()
+    let csvText = ''
     
-    let response
-    try {
-      // Используем redirect: 'follow' для автоматического следования редиректам
-      response = await fetch(csvUrl, {
-        redirect: 'follow',
-        // Не передаем cookies, чтобы использовать публичный доступ
-        credentials: 'omit',
-        // Добавляем заголовки для лучшей совместимости
-        headers: {
-          'Accept': 'text/csv,text/plain,*/*'
-        }
-      })
-      
-      // Обрабатываем ошибки доступа к таблице
-      if (!response.ok || response.status !== 200) {
-        throw new Error(`CSV export failed with status ${response.status}`)
-      }
-    } catch (error) {
-      // Если прямой CSV экспорт не работает, пробуем через Google Apps Script как fallback
-      console.warn('⚠️ [loadDataFromSheets] Прямой CSV экспорт не работает, пробуем через Google Apps Script:', error.message)
-      
-      const scriptId = getGoogleAppsScriptId()
-      if (scriptId && !scriptId.includes('YOUR_SCRIPT_ID')) {
-        try {
-          const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec?action=getSheetData&gid=${targetGid}`
-          const scriptResponse = await fetch(scriptUrl, {
-            method: 'GET',
-            mode: 'cors'
-          })
-          
-          if (scriptResponse.ok) {
-            const data = await scriptResponse.json()
-            if (data.success && data.csv) {
-              // Используем CSV данные из Google Apps Script
-              const lines = data.csv.split('\n').filter(line => line.trim())
-              // Продолжаем обработку как обычно
-              response = { ok: true, arrayBuffer: async () => new TextEncoder().encode(data.csv) }
-            } else {
-              return { teams: [], games: [] }
-            }
-          } else {
-            return { teams: [], games: [] }
+    // Способ 1: Пробуем через Google Apps Script (если настроен и поддерживает getSheetData)
+    if (scriptId && !scriptId.includes('YOUR_SCRIPT_ID')) {
+      try {
+        const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec?action=getSheetData&gid=${targetGid}`
+        const response = await fetch(scriptUrl, {
+          method: 'GET',
+          mode: 'cors'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.csv) {
+            csvText = data.csv
           }
-        } catch (scriptError) {
-          console.warn('⚠️ [loadDataFromSheets] Google Apps Script fallback также не работает:', scriptError.message)
-          return { teams: [], games: [] }
         }
-      } else {
+      } catch (error) {
+        // Продолжаем к fallback методу
+      }
+    }
+    
+    // Способ 2: Fallback к CSV экспорту (если Apps Script не сработал)
+    if (!csvText) {
+      try {
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
+        const response = await fetch(csvUrl, {
+          redirect: 'follow',
+          credentials: 'omit'
+        })
+        
+        if (response.ok && response.status === 200) {
+          const arrayBuffer = await response.arrayBuffer()
+          const decoder = new TextDecoder('utf-8')
+          csvText = decoder.decode(arrayBuffer)
+        }
+      } catch (error) {
+        console.warn('⚠️ [loadDataFromSheets] Не удалось загрузить данные:', error.message)
         return { teams: [], games: [] }
       }
     }
     
-    // Получаем данные как ArrayBuffer для правильной обработки кодировки
-    const arrayBuffer = await response.arrayBuffer()
-    // Декодируем как UTF-8
-    const decoder = new TextDecoder('utf-8')
-    const csvText = decoder.decode(arrayBuffer)
+    if (!csvText) {
+      return { teams: [], games: [] }
+    }
+    
     const lines = csvText.split('\n').filter(line => line.trim())
     
     if (lines.length === 0) {
@@ -486,38 +473,61 @@ export async function loadTournamentsList() {
       } else {
         // Если не нашли по названию, пробуем найти по содержимому
         // Проверяем все листы на наличие заголовков турниров
+        const scriptId = getGoogleAppsScriptId()
         for (const sheet of sheetsList) {
           try {
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheet.gid}`
-            const response = await fetch(csvUrl, {
-              redirect: 'follow',
-              credentials: 'omit'
-            })
+            let csvText = ''
             
-            // Пропускаем ошибки 400 (Bad Request) и 403 (Forbidden) - таблица может быть приватной
-            if (response.ok && response.status === 200) {
-              const arrayBuffer = await response.arrayBuffer()
-              const decoder = new TextDecoder('utf-8')
-              const csvText = decoder.decode(arrayBuffer)
-              const lines = csvText.split('\n').filter(line => line.trim())
-              
-              // Проверяем первые строки на наличие заголовков турниров
-              for (let i = 0; i < Math.min(5, lines.length); i++) {
-                const line = lines[i].trim().toLowerCase()
-                if (line.includes('id') && line.includes('name') && 
-                    (line.includes('startdate') || line.includes('enddate') || 
-                     line.includes('description') || line.includes('createdat'))) {
-                  // Проверяем, что это не лист турнира (нет секций TEAMS/GAMES)
-                  if (!csvText.includes('TEAMS') && !csvText.includes('GAMES') && !csvText.includes('STANDINGS')) {
-                    targetGid = sheet.gid
-                    break
+            // Пробуем через Apps Script
+            if (scriptId && !scriptId.includes('YOUR_SCRIPT_ID')) {
+              try {
+                const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec?action=getSheetData&gid=${sheet.gid}`
+                const response = await fetch(scriptUrl, { method: 'GET', mode: 'cors' })
+                if (response.ok) {
+                  const data = await response.json()
+                  if (data.success && data.csv) {
+                    csvText = data.csv
                   }
                 }
+              } catch (error) {
+                // Продолжаем к CSV fallback
               }
-              
-              if (targetGid !== null) {
-                break
+            }
+            
+            // Fallback к CSV экспорту
+            if (!csvText) {
+              try {
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheet.gid}`
+                const response = await fetch(csvUrl, { redirect: 'follow', credentials: 'omit' })
+                if (response.ok && response.status === 200) {
+                  const arrayBuffer = await response.arrayBuffer()
+                  const decoder = new TextDecoder('utf-8')
+                  csvText = decoder.decode(arrayBuffer)
+                }
+              } catch (error) {
+                continue
               }
+            }
+            
+            if (!csvText) continue
+            
+            const lines = csvText.split('\n').filter(line => line.trim())
+            // Проверяем первые строки на наличие заголовков турниров
+            for (let i = 0; i < Math.min(5, lines.length); i++) {
+              const line = lines[i].trim().toLowerCase()
+              if (line.includes('id') && line.includes('name') && 
+                  (line.includes('startdate') || line.includes('enddate') || 
+                   line.includes('description') || line.includes('createdat'))) {
+                // Проверяем, что это не лист турнира (нет секций TEAMS/GAMES)
+                if (!csvText.includes('TEAMS') && !csvText.includes('GAMES') && !csvText.includes('STANDINGS')) {
+                  targetGid = sheet.gid
+                  break
+                }
+              }
+            }
+            
+            if (targetGid !== null) {
+              break
             }
           } catch (error) {
             // Продолжаем проверку следующего листа
@@ -527,31 +537,58 @@ export async function loadTournamentsList() {
       }
     }
     
-    // Шаг 2: Если нашли лист, загружаем данные
+    // Шаг 2: Если нашли лист, загружаем данные (сначала через Apps Script, потом CSV fallback)
     if (targetGid !== null) {
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
+      const scriptId = getGoogleAppsScriptId()
+      let csvText = ''
       
-      let response
-      try {
-        response = await fetch(csvUrl, {
-          redirect: 'follow',
-          credentials: 'omit',
-          headers: {
-            'Accept': 'text/csv,text/plain,*/*'
+      // Способ 1: Пробуем через Google Apps Script
+      if (scriptId && !scriptId.includes('YOUR_SCRIPT_ID')) {
+        try {
+          const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec?action=getSheetData&gid=${targetGid}`
+          const response = await fetch(scriptUrl, {
+            method: 'GET',
+            mode: 'cors'
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.csv) {
+              csvText = data.csv
+            }
           }
-        })
-        
-        if (!response.ok || response.status !== 200) {
-          throw new Error(`CSV export failed with status ${response.status}`)
+        } catch (error) {
+          // Продолжаем к fallback
         }
-      } catch (error) {
-        console.warn('⚠️ [loadTournamentsList] Не удалось загрузить CSV:', error.message)
+      }
+      
+      // Способ 2: Fallback к CSV экспорту
+      if (!csvText) {
+        try {
+          const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
+          const response = await fetch(csvUrl, {
+            redirect: 'follow',
+            credentials: 'omit'
+          })
+          
+          if (response.ok && response.status === 200) {
+            const arrayBuffer = await response.arrayBuffer()
+            const decoder = new TextDecoder('utf-8')
+            csvText = decoder.decode(arrayBuffer)
+          } else {
+            console.warn('⚠️ [loadTournamentsList] Не удалось загрузить данные:', response.status)
+            return tournaments
+          }
+        } catch (error) {
+          console.warn('⚠️ [loadTournamentsList] Ошибка при загрузке данных:', error.message)
+          return tournaments
+        }
+      }
+      
+      if (!csvText) {
         return tournaments
       }
       
-      const arrayBuffer = await response.arrayBuffer()
-      const decoder = new TextDecoder('utf-8')
-      const csvText = decoder.decode(arrayBuffer)
       const lines = csvText.split('\n').filter(line => line.trim())
       
       console.log('📄 [loadTournamentsList] CSV данные (первые 20 строк):', lines.slice(0, 20))
@@ -735,88 +772,9 @@ export async function loadTournamentsList() {
           }
         }
     } else {
-      // Если не удалось получить список листов, используем старый метод (fallback)
-      // Пробуем несколько листов (gid от 0 до 20, но останавливаемся после 5 ошибок подряд)
-      let consecutiveErrors = 0
-      const maxConsecutiveErrors = 5
-      
-      for (let gid = 0; gid <= 20; gid++) {
-        try {
-          const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`
-          const response = await fetch(csvUrl, {
-            redirect: 'follow',
-            credentials: 'omit'
-          })
-          
-          // Пропускаем ошибки 400 (Bad Request) и 403 (Forbidden) - таблица может быть приватной или лист не существует
-          if (!response.ok || response.status === 400 || response.status === 403) {
-            consecutiveErrors++
-            if (consecutiveErrors >= maxConsecutiveErrors) {
-              break
-            }
-            continue
-          }
-          
-          consecutiveErrors = 0
-          
-          const arrayBuffer = await response.arrayBuffer()
-          const decoder = new TextDecoder('utf-8')
-          const csvText = decoder.decode(arrayBuffer)
-          const lines = csvText.split('\n').filter(line => line.trim())
-          
-          if (lines.length === 0) {
-            continue
-          }
-          
-          // Проверяем, что это лист "Tournaments" (нет секций TEAMS/GAMES)
-          if (!csvText.includes('TEAMS') && !csvText.includes('GAMES') && !csvText.includes('STANDINGS')) {
-            // Проверяем наличие заголовков турниров
-            for (let i = 0; i < Math.min(5, lines.length); i++) {
-              const line = lines[i].trim().toLowerCase()
-              if (line.includes('id') && line.includes('name') && 
-                  (line.includes('startdate') || line.includes('enddate') || 
-                   line.includes('description') || line.includes('createdat'))) {
-                // Нашли лист "Tournaments", парсим данные
-                const headerIndex = i
-                for (let j = headerIndex + 1; j < lines.length; j++) {
-                  const dataLine = lines[j].trim()
-                  if (!dataLine) continue
-                  
-                  const values = parseCSVLine(dataLine)
-                  if (values.length >= 2 && values[0] && values[0].trim() !== 'id') {
-                    const tournamentId = String(values[0].trim())
-                    const tournamentName = String(values[1] || '').trim()
-                    
-                    if (tournamentId.length > 2 && tournamentName) {
-                      const tournamentObj = {
-                        id: tournamentId,
-                        name: tournamentName,
-                        startDate: values[2] ? String(values[2]).trim() : '',
-                        endDate: values[3] ? String(values[3]).trim() : '',
-                        description: values[4] ? String(values[4]).trim() : '',
-                        createdAt: values[5] ? String(values[5]).trim() : new Date().toISOString()
-                      }
-                      console.log('✅ [loadTournamentsList] Добавлен турнир (fallback):', tournamentObj)
-                      tournaments.push(tournamentObj)
-                    }
-                  }
-                }
-                
-                if (tournaments.length > 0) {
-                  return tournaments
-                }
-                break
-              }
-            }
-          }
-        } catch (error) {
-          consecutiveErrors++
-          if (consecutiveErrors >= maxConsecutiveErrors) {
-            break
-          }
-          continue
-        }
-      }
+      // Если не удалось получить список листов через Google Apps Script, возвращаем пустой массив
+      // (без списка листов мы не можем найти лист "Tournaments")
+      console.warn('⚠️ [loadTournamentsList] Не удалось получить список листов, невозможно загрузить турниры')
     }
     
     console.log('📊 [loadTournamentsList] Итоговый результат:', tournaments)

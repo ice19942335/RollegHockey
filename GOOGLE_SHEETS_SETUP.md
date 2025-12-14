@@ -289,8 +289,57 @@ function doGet(e) {
     }
   }
   
-  // Для чтения данных используем публичный CSV экспорт
-  return ContentService.createTextOutput('Use CSV export for reading data');
+  // Обработка получения CSV данных листа
+  if (e.parameter && e.parameter.action === 'getSheetData' && e.parameter.gid) {
+    try {
+      const gid = parseInt(e.parameter.gid);
+      const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+      const sheets = spreadsheet.getSheets();
+      const targetSheet = sheets.find(sheet => sheet.getSheetId() === gid);
+      
+      if (!targetSheet) {
+        throw new Error('Лист с указанным gid не найден');
+      }
+      
+      // Получаем все данные листа
+      const data = targetSheet.getDataRange().getValues();
+      
+      // Конвертируем в CSV формат
+      let csv = '';
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const csvRow = row.map(cell => {
+          // Экранируем кавычки и оборачиваем в кавычки, если есть запятая, кавычка или перенос строки
+          const cellValue = cell != null ? String(cell) : '';
+          if (cellValue.includes(',') || cellValue.includes('"') || cellValue.includes('\n')) {
+            return '"' + cellValue.replace(/"/g, '""') + '"';
+          }
+          return cellValue;
+        }).join(',');
+        csv += csvRow + '\n';
+      }
+      
+      const output = ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        csv: csv
+      }))
+        .setMimeType(ContentService.MimeType.JSON);
+      return output;
+    } catch (error) {
+      const output = ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: error.toString()
+      }))
+        .setMimeType(ContentService.MimeType.JSON);
+      return output;
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    success: false,
+    error: 'Неизвестное действие'
+  }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 ```
 

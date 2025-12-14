@@ -52,7 +52,7 @@ jobs:
 
           // Production Google Sheets Configuration
           export const PROD_SPREADSHEET_ID = '155dQ0YN-WUNGcxRr_IxcJkN_v2gphA0s6c4uR1nExkg'
-          export const PROD_GOOGLE_APPS_SCRIPT_ID = 'AKfycbx0DFvjp9TN7IvAWU7O51N8nCkbf1LIeB3ayKr9753AK57Yu3fs4Qy34HGb__N_klwN5Q'
+          export const PROD_GOOGLE_APPS_SCRIPT_ID = 'AKfycbyLsYEWw7JJM8II3Wq3cIRXK-Oy7hh0JKxwibqlufqrvoyzTd7s6-H5sSqVq-oqT0lY4g'
 
           /**
            * Returns the current Spreadsheet ID based on the mode
