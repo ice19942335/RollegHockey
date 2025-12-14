@@ -84,6 +84,14 @@ export const translations = {
     loading: 'Загрузка данных...',
     saving: 'Сохранение, подождите +-15 секунд...',
     elapsed: 'Прошло: {seconds} сек.',
+    
+    // Navigation Menu
+    menuCreateTournament: 'Создать турнир',
+    menuTournamentsList: 'Список турниров',
+    menuPlayoffsList: 'Список Плей-оффов',
+    menuClearDatabase: 'Очистить БД',
+    clearDatabaseConfirm: 'Это действие удалит все команды и игры. Продолжить?',
+    clearDatabaseEmpty: 'База данных уже пуста.',
   },
   lv: {
     // Header
@@ -170,6 +178,14 @@ export const translations = {
     loading: 'Datu ielāde...',
     saving: 'Saglabāšana, lūdzu, uzgaidiet +-15 sekundes...',
     elapsed: 'Pagājis: {seconds} sek.',
+    
+    // Navigation Menu
+    menuCreateTournament: 'Izveidot turnīru',
+    menuTournamentsList: 'Turnīru saraksts',
+    menuPlayoffsList: 'Play-off saraksts',
+    menuClearDatabase: 'Notīrīt datu bāzi',
+    clearDatabaseConfirm: 'Šī darbība dzēsīs visas komandas un spēles. Turpināt?',
+    clearDatabaseEmpty: 'Datu bāze jau ir tukša.',
   }
 }
 

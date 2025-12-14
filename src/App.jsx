@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import Header from './components/Header'
+import Navigation from './components/Navigation'
 import { useLanguage } from './i18n/LanguageContext'
 import TeamForm from './components/TeamForm'
 import TeamList from './components/TeamList'
@@ -513,6 +514,38 @@ function App() {
     }
   }
 
+  // Navigation handlers
+  const handleCreateTournament = () => {
+    // TODO: Implement create tournament functionality
+    console.log('Create tournament clicked')
+    alert(t('menuCreateTournament') + ' - Функция в разработке')
+  }
+
+  const handleTournamentsList = () => {
+    // TODO: Implement tournaments list functionality
+    console.log('Tournaments list clicked')
+    alert(t('menuTournamentsList') + ' - Функция в разработке')
+  }
+
+  const handlePlayoffsList = () => {
+    // TODO: Implement playoffs list functionality
+    console.log('Playoffs list clicked')
+    alert(t('menuPlayoffsList') + ' - Функция в разработке')
+  }
+
+  const handleClearDatabase = () => {
+    // Clear all teams and games
+    const totalItems = teams.length + games.length
+    const confirmMessage = totalItems > 0 
+      ? `${t('deleteAllGamesMessage', { count: totalItems })}\n\n${t('clearDatabaseConfirm')}`
+      : t('clearDatabaseEmpty')
+    
+    if (window.confirm(confirmMessage)) {
+      setTeams([])
+      setGames([])
+    }
+  }
+
   const homeTeam = teams.find(t => String(t.id) === String(selectedHomeTeam))
   const awayTeam = teams.find(t => String(t.id) === String(selectedAwayTeam))
 
@@ -552,6 +585,12 @@ function App() {
           onDecrementAwayScore={decrementAwayScore}
         />
       )}
+      <Navigation 
+        onCreateTournament={handleCreateTournament}
+        onTournamentsList={handleTournamentsList}
+        onPlayoffsList={handlePlayoffsList}
+        onClearDatabase={handleClearDatabase}
+      />
       <Header />
 
       <main className="main">
