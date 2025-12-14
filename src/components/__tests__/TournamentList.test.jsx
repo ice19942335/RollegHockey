@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import TournamentList from '../TournamentList'
 import { LanguageProvider } from '../../i18n/LanguageContext'
 import * as googleSheets from '../../utils/googleSheets'
-import * as googleSheetsConfig from '../../config/googleSheets'
+import * as googleSheetsConfig from '../../config/googleSheets.js'
 
 // Mock dependencies
 vi.mock('../../utils/googleSheets', () => ({
@@ -13,7 +13,7 @@ vi.mock('../../utils/googleSheets', () => ({
   deleteTournament: vi.fn()
 }))
 
-vi.mock('../../config/googleSheets', () => ({
+vi.mock('../../config/googleSheets.js', () => ({
   IS_DEV_MODE: true
 }))
 

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { deleteTournament } from '../googleSheets'
-import * as googleSheetsConfig from '../../config/googleSheets'
+import * as googleSheetsConfig from '../../config/googleSheets.js'
 
 // Mock configuration
-vi.mock('../../config/googleSheets', () => ({
+vi.mock('../../config/googleSheets.js', () => ({
   getGoogleAppsScriptId: vi.fn(),
   IS_DEV_MODE: true
 }))
