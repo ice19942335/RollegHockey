@@ -20,7 +20,7 @@ function TournamentView() {
   const { id: tournamentId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const [newTeamName, setNewTeamName] = useState('')
@@ -35,6 +35,7 @@ function TournamentView() {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showMissingTeamModal, setShowMissingTeamModal] = useState(false)
   const [showDeleteTeamModal, setShowDeleteTeamModal] = useState(false)
+  const [showDeleteAllTeamsModal, setShowDeleteAllTeamsModal] = useState(false)
   const [teamToDelete, setTeamToDelete] = useState(null)
   const [relatedGamesToDelete, setRelatedGamesToDelete] = useState([])
   const [missingTeams, setMissingTeams] = useState([])
@@ -50,6 +51,7 @@ function TournamentView() {
   const isAddingGameRef = useRef(false)
   const [tournamentNotFound, setTournamentNotFound] = useState(false)
   const [tournamentName, setTournamentName] = useState('')
+  const [tournamentDescription, setTournamentDescription] = useState('')
   
   // Функция загрузки данных из Google Sheets для конкретного турнира
   const loadData = async (showLoading = false) => {
@@ -91,25 +93,38 @@ function TournamentView() {
     
     loadData(true)
     
-    // Получаем название турнира из state навигации (если есть)
+    // Получаем название и описание турнира из state навигации (если есть)
     const tournamentNameFromState = location.state?.tournamentName
+    const tournamentDescriptionFromState = location.state?.tournamentDescription
+    
     if (tournamentNameFromState) {
       setTournamentName(tournamentNameFromState)
-    } else {
-      // Если название не передано через state, загружаем через API (fallback)
-      const loadTournamentName = async () => {
+    }
+    
+    if (tournamentDescriptionFromState) {
+      setTournamentDescription(tournamentDescriptionFromState)
+    }
+    
+    // Если название или описание не переданы через state, загружаем через API (fallback)
+    if (!tournamentNameFromState || !tournamentDescriptionFromState) {
+      const loadTournamentData = async () => {
         try {
           const tournaments = await loadTournamentsList()
           const tournament = tournaments.find(t => t.id === tournamentId)
-          if (tournament && tournament.name) {
-            setTournamentName(tournament.name)
+          if (tournament) {
+            if (!tournamentNameFromState && tournament.name) {
+              setTournamentName(tournament.name)
+            }
+            if (!tournamentDescriptionFromState && tournament.description) {
+              setTournamentDescription(tournament.description)
+            }
           }
         } catch (error) {
-          console.error('Ошибка загрузки названия турнира:', error)
+          console.error('Ошибка загрузки данных турнира:', error)
         }
       }
       
-      loadTournamentName()
+      loadTournamentData()
     }
   }, [tournamentId, location.state])
   
@@ -186,6 +201,67 @@ function TournamentView() {
       setNewTeamName('')
       setNewTeamLogo('🏒')
       setNewTeamColor('#1e3c72')
+    }
+  }
+
+  const handleGeneratingStart = () => {
+    // Блокируем приложение в начале генерации
+    isAddingGameRef.current = true
+    setIsSaving(true)
+  }
+
+  const handleGenerateTeams = async (generatedTeams) => {
+    console.log('handleGenerateTeams вызван с:', generatedTeams)
+    
+    if (!generatedTeams || generatedTeams.length === 0) {
+      console.warn('Нет команд для добавления')
+      setIsSaving(false)
+      isAddingGameRef.current = false
+      return
+    }
+
+    // Блокировка уже установлена в handleGeneratingStart
+    // Убедимся что она активна
+    if (!isSaving) {
+      isAddingGameRef.current = true
+      setIsSaving(true)
+    }
+
+    try {
+      // Фильтруем команды, исключая дубликаты
+      const existingNames = teams.map(t => t.name.toLowerCase().trim())
+      const uniqueTeams = generatedTeams.filter(team => 
+        !existingNames.includes(team.name.toLowerCase().trim())
+      )
+
+      console.log('Уникальные команды для добавления:', uniqueTeams)
+
+      if (uniqueTeams.length > 0) {
+        const updatedTeams = [...teams, ...uniqueTeams]
+        setTeams(updatedTeams)
+        console.log('Команды добавлены в состояние')
+
+        // Обновляем previousDataRef
+        previousDataRef.current = {
+          teams: JSON.parse(JSON.stringify(updatedTeams)),
+          games: JSON.parse(JSON.stringify(games))
+        }
+
+        // Сохраняем в Google Sheets
+        const standings = calculateStandings(updatedTeams, games)
+        await saveDataToSheets(updatedTeams, games, standings, tournamentId)
+        console.log('Команды сохранены в Google Sheets')
+      } else {
+        console.warn('Все команды уже существуют')
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении сгенерированных команд:', error)
+    } finally {
+      setIsSaving(false)
+      // Сбрасываем флаг после небольшой задержки
+      setTimeout(() => {
+        isAddingGameRef.current = false
+      }, 100)
     }
   }
 
@@ -516,6 +592,74 @@ function TournamentView() {
     }
   }
 
+  // Обработчик удаления одной pending игры
+  const handleDeletePendingGame = async (gameId) => {
+    setIsSaving(true) // Блокируем приложение
+    try {
+      // Загружаем свежие данные
+      const freshData = await loadData(false)
+      const currentGames = freshData.games.length > 0 ? freshData.games : games
+
+      // Удаляем игру
+      const updatedGames = currentGames.filter(game => game.id !== gameId)
+
+      // Обновляем состояние
+      setGames(updatedGames)
+      if (freshData.teams.length > 0) {
+        setTeams(freshData.teams)
+      }
+
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+
+      // Сохраняем в Google Sheets
+      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+      const standings = calculateStandings(currentTeams, updatedGames)
+      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+    } catch (error) {
+      console.error('Ошибка при удалении pending игры:', error)
+    } finally {
+      setIsSaving(false) // Снимаем блокировку
+    }
+  }
+
+  // Обработчик удаления всех pending игр
+  const handleDeleteAllPendingGames = async () => {
+    setIsSaving(true) // Блокируем приложение
+    try {
+      // Загружаем свежие данные
+      const freshData = await loadData(false)
+      const currentGames = freshData.games.length > 0 ? freshData.games : games
+
+      // Удаляем все pending игры
+      const updatedGames = currentGames.filter(game => !game.pending || game.pending === false)
+
+      // Обновляем состояние
+      setGames(updatedGames)
+      if (freshData.teams.length > 0) {
+        setTeams(freshData.teams)
+      }
+
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+
+      // Сохраняем в Google Sheets
+      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+      const standings = calculateStandings(currentTeams, updatedGames)
+      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+    } catch (error) {
+      console.error('Ошибка при удалении всех pending игр:', error)
+    } finally {
+      setIsSaving(false) // Снимаем блокировку
+    }
+  }
+
   const deleteGame = (id) => {
     setGames(games.filter(g => g.id !== id))
   }
@@ -531,6 +675,40 @@ function TournamentView() {
 
   const cancelDeleteAllGames = () => {
     setShowConfirmModal(false)
+  }
+
+  const handleDeleteAllTeams = () => {
+    setShowDeleteAllTeamsModal(true)
+  }
+
+  const confirmDeleteAllTeams = async () => {
+    setIsSaving(true)
+    setShowDeleteAllTeamsModal(false)
+    
+    try {
+      // Удаляем все команды и игры
+      setTeams([])
+      setGames([])
+      
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: [],
+        games: []
+      }
+      
+      // Сохраняем в Google Sheets (пустые массивы)
+      const standings = []
+      await saveDataToSheets([], [], standings, tournamentId)
+      console.log('Все команды и игры удалены')
+    } catch (error) {
+      console.error('Ошибка при удалении всех команд:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const cancelDeleteAllTeams = () => {
+    setShowDeleteAllTeamsModal(false)
   }
 
   const openScoreboard = () => {
@@ -626,6 +804,9 @@ function TournamentView() {
         {tournamentName && (
           <section className="section tournament-title-section">
             <h1 className="tournament-title">{tournamentName}</h1>
+            {tournamentDescription && (
+              <p className="tournament-description">{tournamentDescription}</p>
+            )}
           </section>
         )}
         
@@ -639,11 +820,16 @@ function TournamentView() {
             newTeamColor={newTeamColor}
             setNewTeamColor={setNewTeamColor}
             onAddTeam={addTeam}
+            onGenerateTeams={handleGenerateTeams}
+            onGeneratingStart={handleGeneratingStart}
+            existingTeams={teams}
+            language={language}
           />
           <TeamList 
             teams={teams} 
             onDeleteTeam={deleteTeam}
             onUpdateTeamName={updateTeamName}
+            onDeleteAllTeams={handleDeleteAllTeams}
           />
         </section>
 
@@ -689,7 +875,18 @@ function TournamentView() {
           
           return (
             <section className="section">
-              <h2>{t('pendingGames')}</h2>
+              <div className="pending-games-header">
+                <h2>{t('pendingGames')}</h2>
+                {pendingGames.length > 0 && (
+                  <button
+                    className="btn-delete-all-pending-games"
+                    onClick={handleDeleteAllPendingGames}
+                    title={t('deleteAllPendingGames')}
+                  >
+                    {t('deleteAllPendingGames')}
+                  </button>
+                )}
+              </div>
               <div className="pending-games-list">
                 {pendingGames.map(game => {
                   const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
@@ -710,12 +907,21 @@ function TournamentView() {
                           <span className="pending-game-type">({t('gameTypeShootout')})</span>
                         )}
                       </div>
-                      <button
-                        className="btn-primary approve-game-btn"
-                        onClick={() => handleApproveGame(game.id)}
-                      >
-                        {t('approveGame')}
-                      </button>
+                      <div className="pending-game-actions">
+                        <button
+                          className="btn-primary approve-game-btn"
+                          onClick={() => handleApproveGame(game.id)}
+                        >
+                          {t('approveGame')}
+                        </button>
+                        <button
+                          className="btn-delete-pending-game"
+                          onClick={() => handleDeletePendingGame(game.id)}
+                          title={t('deletePendingGame')}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
@@ -737,6 +943,14 @@ function TournamentView() {
         onConfirm={confirmDeleteAllGames}
         title={t('deleteAllGamesTitle')}
         message={t('deleteAllGamesMessage').replace('{count}', games.length)}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteAllTeamsModal}
+        onClose={cancelDeleteAllTeams}
+        onConfirm={confirmDeleteAllTeams}
+        title={t('deleteAllTeamsTitle')}
+        message={t('deleteAllTeamsMessage').replace('{teamsCount}', teams.length).replace('{gamesCount}', games.length)}
       />
       
       <MissingTeamModal

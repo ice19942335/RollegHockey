@@ -216,12 +216,12 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
 
       {generateStatus === 'success' && (
         <p className="round-generator-status success">
-          {t('generate')} успешно
+          {t('generateSuccess') || `${t('generate')} ${t('success') || 'успешно'}`}
         </p>
       )}
       {generateStatus === 'error' && (
         <p className="round-generator-status error">
-          Ошибка генерации
+          {t('generateError') || 'Ошибка генерации'}
         </p>
       )}
     </div>
