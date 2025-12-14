@@ -84,6 +84,45 @@ function createTournamentSheet(tournamentId, tournamentData) {
   return { success: true };
 }
 
+// Функция для удаления турнира
+function deleteTournamentSheet(tournamentId) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = `turnament_${tournamentId}`;
+  
+  try {
+    // Удаляем лист турнира, если он существует
+    const tournamentSheet = spreadsheet.getSheetByName(sheetName);
+    if (tournamentSheet) {
+      spreadsheet.deleteSheet(tournamentSheet);
+    }
+    
+    // Удаляем запись из листа "Tournaments"
+    const tournamentsSheet = spreadsheet.getSheetByName('Tournaments');
+    if (tournamentsSheet) {
+      const dataRange = tournamentsSheet.getDataRange();
+      const values = dataRange.getValues();
+      
+      // Ищем строку с нужным tournamentId (первая колонка - id)
+      let rowToDelete = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === tournamentId) {
+          rowToDelete = i + 1; // +1 потому что getValues() возвращает индексы с 0, а deleteRow() использует 1-based индексы
+          break;
+        }
+      }
+      
+      // Удаляем строку, если найдена
+      if (rowToDelete > 0) {
+        tournamentsSheet.deleteRow(rowToDelete);
+      }
+    }
+    
+    return { success: true, error: null };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 function doPost(e) {
   try {
     // Получаем данные из запроса
@@ -106,6 +145,14 @@ function doPost(e) {
     // Обработка создания турнира
     if (data.action === 'createTournament' && data.tournament) {
       const result = createTournamentSheet(data.tournament.id, data.tournament);
+      const output = ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+      return output;
+    }
+    
+    // Обработка удаления турнира
+    if (data.action === 'deleteTournament' && data.tournamentId) {
+      const result = deleteTournamentSheet(data.tournamentId);
       const output = ContentService.createTextOutput(JSON.stringify(result))
         .setMimeType(ContentService.MimeType.JSON);
       return output;

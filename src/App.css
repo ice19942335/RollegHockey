@@ -3046,6 +3046,30 @@
   margin-top: 2rem;
 }
 
+/* Deleting Tournament Modal Styles */
+.deleting-tournament-overlay {
+  pointer-events: all;
+  cursor: not-allowed;
+}
+
+.deleting-tournament-modal {
+  text-align: center;
+}
+
+.deleting-tournament-timer {
+  margin: 1.5rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.deleting-tournament-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2rem;
+}
+
 .spinner {
   width: 50px;
   height: 50px;
@@ -3153,6 +3177,37 @@
   word-wrap: break-word;
   box-sizing: border-box;
   min-width: 0;
+  position: relative;
+}
+
+.tournament-delete-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(198, 40, 40, 0.1);
+  border: 2px solid rgba(198, 40, 40, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  line-height: 1;
+}
+
+.tournament-delete-btn:hover {
+  background: rgba(198, 40, 40, 0.2);
+  border-color: rgba(198, 40, 40, 0.5);
+  transform: scale(1.1);
+}
+
+.tournament-delete-btn:active {
+  transform: scale(0.95);
 }
 
 .tournament-card:hover {
@@ -3163,6 +3218,7 @@
 
 .tournament-card-title {
   margin: 0;
+  padding-right: 3.5rem; /* Отступ для кнопки удаления */
   color: #333;
   font-size: 1.5rem;
   font-weight: 600;
@@ -3170,6 +3226,17 @@
   overflow-wrap: break-word;
   word-break: break-word;
   hyphens: auto;
+}
+
+.tournament-card-id {
+  font-size: 0.75rem;
+  color: #666;
+  font-family: 'Courier New', monospace;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 0.25rem;
 }
 
 .tournament-card-dates {
@@ -3518,6 +3585,17 @@
   background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%) !important;
+  color: white !important;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #b71c1c 0%, #c62828 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.5);
 }
 
 .games-list-header {

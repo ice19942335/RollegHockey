@@ -843,3 +843,56 @@ export async function createTournament(tournamentData) {
   }
 }
 
+/**
+ * Удаляет турнир из Google Sheets
+ * @param {string} tournamentId - ID турнира для удаления
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
+export async function deleteTournament(tournamentId) {
+  try {
+    const scriptId = getGoogleAppsScriptId()
+    const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec`
+    
+    if (scriptId.includes('YOUR_SCRIPT_ID') || !scriptId) {
+      return { success: false, error: 'Google Apps Script не настроен' }
+    }
+    
+    if (!tournamentId) {
+      return { success: false, error: 'ID турнира не указан' }
+    }
+    
+    const data = {
+      action: 'deleteTournament',
+      tournamentId: tournamentId
+    }
+    
+    console.log('🗑️ [deleteTournament] Отправка запроса на удаление турнира:', tournamentId)
+    
+    try {
+      // Используем no-cors mode, так как Google Apps Script не поддерживает CORS
+      // В этом режиме невозможно проверить успешность запроса напрямую
+      // Предполагаем успех, если запрос отправлен без ошибок
+      await fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+      
+      // В режиме no-cors невозможно проверить успешность запроса напрямую
+      // Предполагаем успех, если запрос отправлен
+      // Фактическую проверку удаления делаем через синхронизацию списка турниров
+      console.log('✅ [deleteTournament] Запрос на удаление отправлен:', tournamentId)
+      return { success: true, error: null }
+    } catch (error) {
+      console.error('❌ [deleteTournament] Ошибка при отправке запроса:', error)
+      return { success: false, error: error.message || 'Ошибка при удалении турнира' }
+    }
+  } catch (error) {
+    console.error('❌ [deleteTournament] Общая ошибка:', error)
+    return { success: false, error: error.message || 'Неизвестная ошибка' }
+  }
+}
+

@@ -1,7 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../i18n/LanguageContext'
-import { loadTournamentsList, loadDataFromSheets } from '../utils/googleSheets'
+import { loadTournamentsList, loadDataFromSheets, deleteTournament } from '../utils/googleSheets'
+import { IS_DEV_MODE } from '../config/googleSheets'
+import DeleteTournamentModal from './DeleteTournamentModal'
+import DeletingTournamentModal from './DeletingTournamentModal'
 import '../App.css'
 
 function TournamentList() {
@@ -12,6 +15,10 @@ function TournamentList() {
   const [loading, setLoading] = useState(true)
   const [loadingSeconds, setLoadingSeconds] = useState(0)
   const [expandedDescriptions, setExpandedDescriptions] = useState(new Set())
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deletionError, setDeletionError] = useState(null)
+  const [tournamentToDelete, setTournamentToDelete] = useState(null)
   const hasLoadedRef = useRef(false)
   const loadingIntervalRef = useRef(null)
 
@@ -124,6 +131,69 @@ function TournamentList() {
     navigate(`/t/${tournamentId}`)
   }
 
+  const handleDeleteClick = (e, tournament) => {
+    e.stopPropagation() // Предотвращаем переход на страницу турнира
+    setTournamentToDelete(tournament)
+    setShowDeleteModal(true)
+  }
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false)
+    setTournamentToDelete(null)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!tournamentToDelete) return
+    
+    // Закрываем модальное окно подтверждения
+    setShowDeleteModal(false)
+    
+    // Открываем модальное окно блокировки
+    setIsDeleting(true)
+    setDeletionError(null)
+    
+    try {
+      // Синхронизация перед удалением
+      const tournaments = await loadTournamentsList()
+      
+      // Проверка существования
+      const tournamentExists = tournaments.some(t => String(t.id) === String(tournamentToDelete.id))
+      
+      if (!tournamentExists) {
+        // Турнир уже был удален
+        setIsDeleting(false)
+        alert(t('deleteTournamentAlreadyDeleted'))
+        // Обновляем список турниров
+        await loadTournaments()
+        setTournamentToDelete(null)
+        return
+      }
+      
+      // Вызываем удаление
+      const result = await deleteTournament(tournamentToDelete.id)
+      
+      if (result.success) {
+        // Успешное удаление
+        setIsDeleting(false)
+        setTournamentToDelete(null)
+        // Обновляем список турниров
+        await loadTournaments()
+      } else {
+        // Ошибка при удалении
+        setDeletionError(result.error || t('deleteTournamentErrorDetails'))
+      }
+    } catch (error) {
+      console.error('Ошибка при удалении турнира:', error)
+      setDeletionError(error.message || t('deleteTournamentErrorDetails'))
+    }
+  }
+
+  const handleCloseDeletingModal = () => {
+    setIsDeleting(false)
+    setDeletionError(null)
+    setTournamentToDelete(null)
+  }
+
   if (loading) {
     return (
       <div className="tournament-list-container">
@@ -162,7 +232,20 @@ function TournamentList() {
                 className="tournament-card"
                 onClick={() => handleTournamentClick(tournament.id)}
               >
+                <button
+                  className="tournament-delete-btn"
+                  onClick={(e) => handleDeleteClick(e, tournament)}
+                  title={t('deleteTournament')}
+                >
+                  🗑️
+                </button>
                 <h2 className="tournament-card-title">{tournament.name}</h2>
+                
+                {IS_DEV_MODE && tournament.id && (
+                  <div className="tournament-card-id">
+                    ID: {tournament.id}
+                  </div>
+                )}
                 
                 {(tournament.startDate || tournament.endDate) && (
                   <div className="tournament-card-dates">
@@ -219,6 +302,19 @@ function TournamentList() {
           })}
         </div>
       )}
+      
+      <DeleteTournamentModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        tournament={tournamentToDelete}
+      />
+      
+      <DeletingTournamentModal
+        isOpen={isDeleting}
+        error={deletionError}
+        onClose={handleCloseDeletingModal}
+      />
     </div>
   )
 }

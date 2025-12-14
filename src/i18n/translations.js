@@ -127,6 +127,19 @@ export const translations = {
     tournamentNotFound: 'Турнир не найден',
     tournamentNotFoundMessage: 'Турнир с указанным ID не существует.',
     backToTournaments: 'Вернуться к списку турниров',
+    
+    // Delete Tournament
+    deleteTournament: 'Удалить турнир',
+    deleteTournamentConfirm: 'Вы уверены, что хотите удалить турнир?',
+    deleteTournamentWarning: 'Это действие необратимо. Все данные турнира будут удалены.',
+    deleteTournamentSuccess: 'Турнир успешно удален',
+    deleteTournamentError: 'Ошибка при удалении турнира',
+    deleteTournamentErrorDetails: 'Не удалось удалить турнир. Пожалуйста, свяжитесь с администратором.',
+    deleteTournamentContactAdmin: 'Пожалуйста, свяжитесь с администратором',
+    deleteTournamentAlreadyDeleted: 'Турнир уже был удален',
+    deleteTournamentSyncing: 'Синхронизация с сервером...',
+    deletingTournamentTitle: 'Удаление турнира',
+    deletingTournamentMessage: 'Идет удаление турнира. Пожалуйста, подождите...',
   },
   lv: {
     // Header
@@ -256,6 +269,19 @@ export const translations = {
     tournamentNotFound: 'Turnīrs nav atrasts',
     tournamentNotFoundMessage: 'Turnīrs ar norādīto ID neeksistē.',
     backToTournaments: 'Atgriezties pie turnīru saraksta',
+    
+    // Delete Tournament
+    deleteTournament: 'Dzēst turnīru',
+    deleteTournamentConfirm: 'Vai tiešām vēlaties dzēst turnīru?',
+    deleteTournamentWarning: 'Šī darbība ir neatgriezeniska. Visi turnīra dati tiks dzēsti.',
+    deleteTournamentSuccess: 'Turnīrs veiksmīgi dzēsts',
+    deleteTournamentError: 'Kļūda, dzēšot turnīru',
+    deleteTournamentErrorDetails: 'Neizdevās dzēst turnīru. Lūdzu, sazinieties ar administratoru.',
+    deleteTournamentContactAdmin: 'Lūdzu, sazinieties ar administratoru',
+    deleteTournamentAlreadyDeleted: 'Turnīrs jau ir dzēsts',
+    deleteTournamentSyncing: 'Sinhronizācija ar serveri...',
+    deletingTournamentTitle: 'Turnīra dzēšana',
+    deletingTournamentMessage: 'Notiek turnīra dzēšana. Lūdzu, uzgaidiet...',
   }
 }
 
