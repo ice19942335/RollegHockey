@@ -39,6 +39,8 @@ function TournamentView() {
   const [showDeleteAllTeamsModal, setShowDeleteAllTeamsModal] = useState(false)
   const [showDeletePendingGameModal, setShowDeletePendingGameModal] = useState(false)
   const [pendingGameToDelete, setPendingGameToDelete] = useState(null)
+  const [showApproveGameModal, setShowApproveGameModal] = useState(false)
+  const [pendingGameToApprove, setPendingGameToApprove] = useState(null)
   const [teamToDelete, setTeamToDelete] = useState(null)
   const [relatedGamesToDelete, setRelatedGamesToDelete] = useState([])
   const [missingTeams, setMissingTeams] = useState([])
@@ -557,9 +559,19 @@ function TournamentView() {
     }
   }
 
+  // Обработчик открытия модального окна утверждения pending игры
+  const handleApproveGameClick = (game) => {
+    setPendingGameToApprove(game)
+    setShowApproveGameModal(true)
+  }
+
   // Обработчик утверждения pending игры
   const handleApproveGame = async (gameId) => {
-    setIsSaving(true)
+    // Закрываем модальное окно подтверждения сразу после подтверждения
+    setShowApproveGameModal(false)
+    setPendingGameToApprove(null)
+    
+    setIsSaving(true) // Блокируем приложение
     try {
       // Загружаем свежие данные
       const freshData = await loadData(false)
@@ -845,8 +857,12 @@ function TournamentView() {
       {showScoreboard && (() => {
         // Если открыто табло для pending игры, используем данные игры
         if (pendingScoreboardGame) {
-          const pendingHomeTeam = teams.find(t => String(t.id) === String(pendingScoreboardGame.homeTeamId))
-          const pendingAwayTeam = teams.find(t => String(t.id) === String(pendingScoreboardGame.awayTeamId))
+          // Получаем актуальную игру из состояния games, чтобы счет всегда был актуальным
+          const currentGame = games.find(g => g.id === pendingScoreboardGame.id)
+          const gameToDisplay = currentGame || pendingScoreboardGame
+          
+          const pendingHomeTeam = teams.find(t => String(t.id) === String(gameToDisplay.homeTeamId))
+          const pendingAwayTeam = teams.find(t => String(t.id) === String(gameToDisplay.awayTeamId))
           
           if (!pendingHomeTeam || !pendingAwayTeam) {
             return null
@@ -856,9 +872,9 @@ function TournamentView() {
             <Scoreboard
               homeTeam={pendingHomeTeam}
               awayTeam={pendingAwayTeam}
-              homeScore={pendingScoreboardGame.homeScore || 0}
-              awayScore={pendingScoreboardGame.awayScore || 0}
-              gameType={pendingScoreboardGame.gameType || 'regular'}
+              homeScore={gameToDisplay.homeScore || 0}
+              awayScore={gameToDisplay.awayScore || 0}
+              gameType={gameToDisplay.gameType || 'regular'}
               onClose={closeScoreboard}
               onIncrementHomeScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'home', 1)}
               onDecrementHomeScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'home', -1)}
@@ -1045,7 +1061,7 @@ function TournamentView() {
                         </button>
                         <button
                           className="btn-primary approve-game-btn"
-                          onClick={() => handleApproveGame(game.id)}
+                          onClick={() => handleApproveGameClick(game)}
                         >
                           {t('approveGame')}
                         </button>
@@ -1094,6 +1110,18 @@ function TournamentView() {
         onConfirm={() => pendingGameToDelete && handleDeletePendingGame(pendingGameToDelete.id)}
         title={t('deletePendingGameTitle')}
         message={t('deletePendingGameMessage')}
+      />
+
+      <ConfirmModal
+        isOpen={showApproveGameModal}
+        onClose={() => {
+          setShowApproveGameModal(false)
+          setPendingGameToApprove(null)
+        }}
+        onConfirm={() => pendingGameToApprove && handleApproveGame(pendingGameToApprove.id)}
+        title={t('approveGameTitle')}
+        message={t('approveGameMessage')}
+        confirmButtonStyle="success"
       />
       
       <MissingTeamModal

@@ -3740,6 +3740,17 @@
   box-shadow: 0 4px 12px rgba(198, 40, 40, 0.5);
 }
 
+.btn-success {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+  color: white !important;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #45a049 0%, #388e3c 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
 .games-list-header {
   display: flex;
   justify-content: space-between;
@@ -4207,6 +4218,19 @@
 .approve-game-btn {
   padding: 0.75rem 1.5rem;
   white-space: nowrap;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.approve-game-btn:hover {
+  background: linear-gradient(135deg, #45a049 0%, #388e3c 100%);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.approve-game-btn:active {
+  transform: translateY(0);
 }
 
 .btn-delete-all-pending-games {
