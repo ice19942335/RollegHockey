@@ -9,6 +9,8 @@ export const translations = {
     selectLogo: 'Выберите логотип:',
     selectColor: 'Выберите цвет команды:',
     addTeam: 'Добавить команду',
+    generateTeams: 'Сгенерировать команды',
+    selectTeamCount: 'Количество команд',
     addTeamSection: 'Добавить команду',
     teamsList: 'Команды',
     clickToEdit: 'Кликните для редактирования',
@@ -79,6 +81,9 @@ export const translations = {
     createTeamsAndSave: 'Создать команды и сохранить',
     deleteAllGamesTitle: 'Удалить все игры?',
     deleteAllGamesMessage: 'Вы уверены, что хотите удалить все {count} игр? Это действие нельзя отменить.',
+    deleteAllTeams: 'Удалить все команды',
+    deleteAllTeamsTitle: 'Удалить все команды',
+    deleteAllTeamsMessage: 'Вы уверены, что хотите удалить все команды и игры? Это действие удалит все команды ({teamsCount}) и все игры ({gamesCount}). Данные будут полностью обнулены. Это действие нельзя отменить.',
     
     // Loading & Saving
     loading: 'Загрузка данных...',
@@ -92,6 +97,78 @@ export const translations = {
     menuClearDatabase: 'Очистить БД',
     clearDatabaseConfirm: 'Это действие удалит все команды и игры. Продолжить?',
     clearDatabaseEmpty: 'База данных уже пуста.',
+    functionInDevelopment: 'Функция в разработке',
+    
+    // Tournament List
+    tournamentsListTitle: 'Список турниров',
+    createTournamentButton: 'Создать турнир',
+    noTournaments: 'Турниры не найдены',
+    loadingTournaments: 'Загрузка турниров...',
+    teams: 'Команды',
+    descriptionLabel: 'Описание',
+    showMore: 'Показать больше',
+    showLess: 'Показать меньше',
+    
+    // Create Tournament
+    createTournamentTitle: 'Создать турнир',
+    tournamentName: 'Название турнира',
+    tournamentNamePlaceholder: 'Введите название турнира',
+    tournamentNameRequired: 'Название турнира обязательно',
+    startDate: 'Дата начала',
+    endDate: 'Дата окончания',
+    description: 'Описание',
+    descriptionPlaceholder: 'Введите описание турнира (необязательно)',
+    createButton: 'Создать',
+    cancelButton: 'Отмена',
+    
+    // Creating Tournament Modal
+    creatingTournamentTitle: 'Создание турнира',
+    creatingTournamentMessage: 'Идет создание турнира. Пожалуйста, подождите...',
+    creatingTournamentError: 'Ошибка при создании турнира',
+    creatingTournamentErrorDetails: 'Не удалось создать турнир. Попробуйте еще раз.',
+    closeButton: 'Закрыть',
+    
+    // Tournament View
+    tournamentNotFound: 'Турнир не найден',
+    tournamentNotFoundMessage: 'Турнир с указанным ID не существует.',
+    backToTournaments: 'Вернуться к списку турниров',
+    
+    // Delete Tournament
+    deleteTournament: 'Удалить турнир',
+    deleteTournamentConfirm: 'Вы уверены, что хотите удалить турнир?',
+    deleteTournamentWarning: 'Это действие необратимо. Все данные турнира будут удалены.',
+    deleteTournamentSuccess: 'Турнир успешно удален',
+    deleteTournamentError: 'Ошибка при удалении турнира',
+    deleteTournamentErrorDetails: 'Не удалось удалить турнир. Пожалуйста, свяжитесь с администратором.',
+    deleteTournamentContactAdmin: 'Пожалуйста, свяжитесь с администратором',
+    deleteTournamentAlreadyDeleted: 'Турнир уже был удален',
+    deleteTournamentSyncing: 'Синхронизация с сервером...',
+    deletingTournamentTitle: 'Удаление турнира',
+    deletingTournamentMessage: 'Идет удаление турнира. Пожалуйста, подождите...',
+    
+    // Tournament Round Generator
+    tournamentRoundGenerator: 'Генератор туров',
+    selectNumber: 'Количество туров',
+    selectTeamToAdd: 'Выберите команду',
+    generate: 'Сгенерировать',
+    generating: 'Генерация...',
+    generateSuccess: 'Генерация успешно завершена',
+    generateError: 'Ошибка генерации',
+    removeTeam: 'Удалить',
+    selectedTeams: 'Выбранные команды',
+    noTeamsSelected: 'Команды не выбраны',
+    approveGame: 'Утвердить результат',
+    approveGameTitle: 'Утвердить результат',
+    approveGameMessage: 'Вы уверены, что хотите утвердить результат этой игры? Игра будет добавлена в общий зачет.',
+    deletePendingGame: 'Удалить игру',
+    deletePendingGameTitle: 'Удалить игру',
+    deletePendingGameMessage: 'Вы уверены, что хотите удалить эту игру? Это действие нельзя отменить.',
+    deleteAllPendingGames: 'Удалить все игры',
+    increaseScore: 'Увеличить счет',
+    decreaseScore: 'Уменьшить счет',
+    pendingGames: 'Игры в процессе',
+    noPendingGames: 'Нет игр в процессе',
+    addAllTeams: 'Добавить все команды',
   },
   lv: {
     // Header
@@ -104,6 +181,8 @@ export const translations = {
     selectColor: 'Izvēlieties komandas krāsu:',
     addTeam: 'Pievienot komandu',
     addTeamSection: 'Pievienot komandu',
+    generateTeams: 'Ģenerēt komandas',
+    selectTeamCount: 'Komandu skaits',
     teamsList: 'Komandas',
     clickToEdit: 'Noklikšķiniet, lai rediģētu',
     
@@ -173,6 +252,9 @@ export const translations = {
     createTeamsAndSave: 'Izveidot komandas un saglabāt',
     deleteAllGamesTitle: 'Dzēst visas spēles?',
     deleteAllGamesMessage: 'Vai tiešām vēlaties dzēst visas {count} spēles? Šo darbību nevar atsaukt.',
+    deleteAllTeams: 'Dzēst visas komandas',
+    deleteAllTeamsTitle: 'Dzēst visas komandas',
+    deleteAllTeamsMessage: 'Vai tiešām vēlaties dzēst visas komandas un spēles? Šī darbība dzēsīs visas komandas ({teamsCount}) un visas spēles ({gamesCount}). Dati tiks pilnībā atiestatīti. Šo darbību nevar atsaukt.',
     
     // Loading & Saving
     loading: 'Datu ielāde...',
@@ -186,6 +268,78 @@ export const translations = {
     menuClearDatabase: 'Notīrīt datu bāzi',
     clearDatabaseConfirm: 'Šī darbība dzēsīs visas komandas un spēles. Turpināt?',
     clearDatabaseEmpty: 'Datu bāze jau ir tukša.',
+    functionInDevelopment: 'Funkcija izstrādē',
+    
+    // Tournament List
+    tournamentsListTitle: 'Turnīru saraksts',
+    createTournamentButton: 'Izveidot turnīru',
+    noTournaments: 'Turnīri nav atrasti',
+    loadingTournaments: 'Turnīru ielāde...',
+    teams: 'Komandas',
+    descriptionLabel: 'Apraksts',
+    showMore: 'Rādīt vairāk',
+    showLess: 'Rādīt mazāk',
+    
+    // Create Tournament
+    createTournamentTitle: 'Izveidot turnīru',
+    tournamentName: 'Turnīra nosaukums',
+    tournamentNamePlaceholder: 'Ievadiet turnīra nosaukumu',
+    tournamentNameRequired: 'Turnīra nosaukums ir obligāts',
+    startDate: 'Sākuma datums',
+    endDate: 'Beigu datums',
+    description: 'Apraksts',
+    descriptionPlaceholder: 'Ievadiet turnīra aprakstu (nav obligāts)',
+    createButton: 'Izveidot',
+    cancelButton: 'Atcelt',
+    
+    // Creating Tournament Modal
+    creatingTournamentTitle: 'Turnīra izveide',
+    creatingTournamentMessage: 'Notiek turnīra izveide. Lūdzu, uzgaidiet...',
+    creatingTournamentError: 'Kļūda, izveidojot turnīru',
+    creatingTournamentErrorDetails: 'Neizdevās izveidot turnīru. Mēģiniet vēlreiz.',
+    closeButton: 'Aizvērt',
+    
+    // Tournament View
+    tournamentNotFound: 'Turnīrs nav atrasts',
+    tournamentNotFoundMessage: 'Turnīrs ar norādīto ID neeksistē.',
+    backToTournaments: 'Atgriezties pie turnīru saraksta',
+    
+    // Delete Tournament
+    deleteTournament: 'Dzēst turnīru',
+    deleteTournamentConfirm: 'Vai tiešām vēlaties dzēst turnīru?',
+    deleteTournamentWarning: 'Šī darbība ir neatgriezeniska. Visi turnīra dati tiks dzēsti.',
+    deleteTournamentSuccess: 'Turnīrs veiksmīgi dzēsts',
+    deleteTournamentError: 'Kļūda, dzēšot turnīru',
+    deleteTournamentErrorDetails: 'Neizdevās dzēst turnīru. Lūdzu, sazinieties ar administratoru.',
+    deleteTournamentContactAdmin: 'Lūdzu, sazinieties ar administratoru',
+    deleteTournamentAlreadyDeleted: 'Turnīrs jau ir dzēsts',
+    deleteTournamentSyncing: 'Sinhronizācija ar serveri...',
+    deletingTournamentTitle: 'Turnīra dzēšana',
+    deletingTournamentMessage: 'Notiek turnīra dzēšana. Lūdzu, uzgaidiet...',
+    
+    // Tournament Round Generator
+    tournamentRoundGenerator: 'Turnīru ģenerators',
+    selectNumber: 'Tūru skaits',
+    selectTeamToAdd: 'Izvēlieties komandu',
+    generate: 'Ģenerēt',
+    generating: 'Ģenerēšana...',
+    generateSuccess: 'Ģenerēšana veiksmīgi pabeigta',
+    generateError: 'Ģenerēšanas kļūda',
+    removeTeam: 'Dzēst',
+    selectedTeams: 'Izvēlētās komandas',
+    noTeamsSelected: 'Komandas nav izvēlētas',
+    approveGame: 'Apstiprināt rezultātu',
+    approveGameTitle: 'Apstiprināt rezultātu',
+    approveGameMessage: 'Vai tiešām vēlaties apstiprināt šīs spēles rezultātu? Spēle tiks pievienota kopējai tabulai.',
+    deletePendingGame: 'Dzēst spēli',
+    deletePendingGameTitle: 'Dzēst spēli',
+    deletePendingGameMessage: 'Vai tiešām vēlaties dzēst šo spēli? Šo darbību nevar atsaukt.',
+    deleteAllPendingGames: 'Dzēst visas spēles',
+    increaseScore: 'Palielināt rezultātu',
+    decreaseScore: 'Samazināt rezultātu',
+    pendingGames: 'Spēles procesā',
+    noPendingGames: 'Nav spēļu procesā',
+    addAllTeams: 'Pievienot visas komandas',
   }
 }
 

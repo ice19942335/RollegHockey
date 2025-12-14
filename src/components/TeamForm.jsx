@@ -1,6 +1,7 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { DEFAULT_TEAM_LOGOS, TEAM_COLORS } from '../constants/teamDefaults'
 import { useLanguage } from '../i18n/LanguageContext'
+import { generateRandomTeams } from '../utils/generateRandomTeams'
 
 function TeamForm({ 
   newTeamName, 
@@ -9,9 +10,14 @@ function TeamForm({
   setNewTeamLogo,
   newTeamColor,
   setNewTeamColor,
-  onAddTeam 
+  onAddTeam,
+  onGenerateTeams,
+  existingTeams = [],
+  language = 'ru',
+  onGeneratingStart
 }) {
   const { t } = useLanguage()
+  const [selectedCount, setSelectedCount] = useState('')
   
   const handleSubmit = useCallback((e) => {
     e.preventDefault()
@@ -44,8 +50,66 @@ function TeamForm({
     }, {})
   }, [])
 
+  const handleGenerateTeams = useCallback(() => {
+    if (!selectedCount || parseInt(selectedCount) < 1) {
+      console.warn('Количество команд не выбрано')
+      return
+    }
+
+    // Блокируем приложение СРАЗУ при нажатии кнопки, до начала генерации
+    if (onGeneratingStart) {
+      onGeneratingStart()
+    }
+
+    // Используем setTimeout с небольшой задержкой, чтобы React успел обновить UI и показать блокировку
+    setTimeout(() => {
+      const count = parseInt(selectedCount)
+      console.log('Генерация команд:', { count, language, existingTeamsCount: existingTeams.length })
+      
+      const generatedTeams = generateRandomTeams(count, language, existingTeams)
+      console.log('Сгенерированные команды:', generatedTeams)
+      
+      if (generatedTeams.length > 0 && onGenerateTeams) {
+        onGenerateTeams(generatedTeams)
+        setSelectedCount('')
+      } else {
+        console.warn('Не удалось сгенерировать команды или отсутствует обработчик', {
+          generatedTeamsLength: generatedTeams.length,
+          hasOnGenerateTeams: !!onGenerateTeams
+        })
+        // Если генерация не удалась, нужно снять блокировку
+        if (onGenerateTeams) {
+          onGenerateTeams([])
+        }
+      }
+    }, 50) // Небольшая задержка для отображения блокировки
+  }, [selectedCount, language, existingTeams, onGenerateTeams, onGeneratingStart])
+
   return (
     <form className="team-form" onSubmit={handleSubmit}>
+      <div className="team-generator-controls">
+        <select
+          className="team-generator-select"
+          value={selectedCount}
+          onChange={(e) => setSelectedCount(e.target.value)}
+        >
+          <option value="">{t('selectTeamCount')}</option>
+          {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+            <option key={num} value={num}>
+              {num}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="team-generator-btn"
+          onClick={handleGenerateTeams}
+          disabled={!selectedCount}
+        >
+          {t('generateTeams')}
+        </button>
+      </div>
+
       <input
         type="text"
         value={newTeamName}

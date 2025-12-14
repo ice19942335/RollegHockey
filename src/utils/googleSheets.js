@@ -1,19 +1,53 @@
 // Google Sheets API утилиты
-const SPREADSHEET_ID = '155dQ0YN-WUNGcxRr_IxcJkN_v2gphA0s6c4uR1nExkg'
-const GOOGLE_APPS_SCRIPT_ID = 'AKfycbxC4p08CHSaQ14vPz3TIZA5-mYsklsoIsHj_TZMR56cuYGF7kV3feyYcU2FVF7XkVud'
+import { getSpreadsheetId, getGoogleAppsScriptId } from '../config/googleSheets.js'
+
 // Для записи нужен API ключ с правами на запись или Google Apps Script
 // Для чтения используем публичный CSV экспорт
 
 /**
- * Загружает данные из Google Sheets
+ * Загружает данные из Google Sheets для конкретного турнира
+ * @param {string} tournamentId - ID турнира (опционально, для обратной совместимости)
+ * @returns {Promise<{teams: Array, games: Array}>}
  */
-export async function loadDataFromSheets() {
+export async function loadDataFromSheets(tournamentId = null) {
   try {
-    // Используем публичный CSV экспорт с явным указанием кодировки UTF-8
-    // Пробуем разные варианты экспорта для поддержки русских символов
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`
+    const spreadsheetId = getSpreadsheetId()
+    let targetGid = 0 // По умолчанию первый лист
     
-    const response = await fetch(csvUrl)
+    // Если указан tournamentId, находим правильный gid
+    if (tournamentId) {
+      const sheetName = `turnament_${tournamentId}`
+      console.log('🔍 [loadDataFromSheets] Ищем лист:', sheetName)
+      
+      const sheetsList = await getSheetsList()
+      if (sheetsList && sheetsList.length > 0) {
+        const tournamentSheet = sheetsList.find(sheet => 
+          sheet.name === sheetName || 
+          sheet.name.toLowerCase() === sheetName.toLowerCase()
+        )
+        
+        if (tournamentSheet) {
+          targetGid = tournamentSheet.gid
+          console.log('✅ [loadDataFromSheets] Найден лист, используем gid:', targetGid)
+        } else {
+          console.warn('⚠️ [loadDataFromSheets] Лист не найден:', sheetName, 'Используем gid=0')
+        }
+      } else {
+        console.warn('⚠️ [loadDataFromSheets] Не удалось получить список листов, используем gid=0')
+      }
+    }
+    
+    // Используем публичный CSV экспорт
+    // ВАЖНО: Используем только docs.google.com, НЕ googleusercontent.com
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
+    
+    // Используем redirect: 'follow' для автоматического следования редиректам
+    // но НЕ используем внутренние URL googleusercontent.com напрямую
+    const response = await fetch(csvUrl, {
+      redirect: 'follow',
+      // Не передаем cookies, чтобы использовать публичный доступ
+      credentials: 'omit'
+    })
     
     if (!response.ok) {
       throw new Error('Не удалось загрузить данные из таблицы')
@@ -162,8 +196,8 @@ export async function loadDataFromSheets() {
         const values = parseCSVLine(line)
         // Убираем пустые значения в конце массива
         const cleanValues = values.filter((v, index) => {
-          // Оставляем первые 7 значений (id, homeTeamId, awayTeamId, homeScore, awayScore, gameType, date) или непустые значения
-          return index < 7 || v.trim() !== ''
+          // Оставляем первые 8 значений (id, homeTeamId, awayTeamId, homeScore, awayScore, gameType, date, pending) или непустые значения
+          return index < 8 || v.trim() !== ''
         })
         
         // Проверяем, что это действительно строка с данными игры
@@ -187,6 +221,11 @@ export async function loadDataFromSheets() {
             continue
           }
           
+          // Парсим поле pending (8-е значение, индекс 7)
+          // Если значение 'true' (строка), то pending = true, иначе false
+          const pendingValue = cleanValues[7] ? cleanValues[7].trim().toLowerCase() : ''
+          const pending = pendingValue === 'true' || pendingValue === '1'
+          
           const game = {
             id: String(cleanValues[0].trim()),
             homeTeamId: String(homeTeamId),
@@ -194,7 +233,8 @@ export async function loadDataFromSheets() {
             homeScore: parseInt(cleanValues[3]) || 0,
             awayScore: parseInt(cleanValues[4]) || 0,
             gameType: (cleanValues[5] || 'regular').trim(),
-            date: (cleanValues[6] || new Date().toLocaleDateString('ru-RU')).trim()
+            date: (cleanValues[6] || new Date().toLocaleDateString('ru-RU')).trim(),
+            pending: pending
           }
           games.push(game)
         }
@@ -210,11 +250,18 @@ export async function loadDataFromSheets() {
 /**
  * Сохраняет данные в Google Sheets через Google Apps Script Web App
  * Нужно создать Google Apps Script с функцией doPost для записи данных
+ * @param {Array} teams - массив команд
+ * @param {Array} games - массив игр
+ * @param {Array} standings - массив турнирной таблицы
+ * @param {string} tournamentId - ID турнира (опционально)
+ * @returns {Promise<boolean>}
  */
-export async function saveDataToSheets(teams, games, standings = []) {
+export async function saveDataToSheets(teams, games, standings = [], tournamentId = null) {
   try {
     // Формируем данные для записи
     const data = {
+      tournamentId: tournamentId || null, // Передаем tournamentId для сохранения в нужный лист
+      sheetName: tournamentId ? `turnament_${tournamentId}` : null,
       teams: teams.map(team => ({
         id: team.id,
         name: team.name,
@@ -228,7 +275,8 @@ export async function saveDataToSheets(teams, games, standings = []) {
         homeScore: game.homeScore,
         awayScore: game.awayScore,
         gameType: game.gameType,
-        date: game.date
+        date: game.date,
+        pending: game.pending !== undefined ? game.pending : false
       })),
       standings: standings.map((team, index) => ({
         position: index + 1,
@@ -249,15 +297,11 @@ export async function saveDataToSheets(teams, games, standings = []) {
     // Используем Google Apps Script Web App URL
     // Нужно создать скрипт и опубликовать его как Web App
     // Инструкция в файле GOOGLE_SHEETS_SETUP.md
-    const scriptUrl = `https://script.google.com/macros/s/${GOOGLE_APPS_SCRIPT_ID}/exec`
+    const scriptId = getGoogleAppsScriptId()
+    const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec`
     
     // Если URL не настроен
-    if (GOOGLE_APPS_SCRIPT_ID.includes('YOUR_SCRIPT_ID')) {
-      return false
-    }
-    
-    // Проверяем URL перед отправкой
-    if (!GOOGLE_APPS_SCRIPT_ID || GOOGLE_APPS_SCRIPT_ID.includes('YOUR_SCRIPT_ID')) {
+    if (scriptId.includes('YOUR_SCRIPT_ID') || !scriptId) {
       return false
     }
     
@@ -314,5 +358,548 @@ function parseCSVLine(line) {
   // Добавляем последнее значение
   values.push(current.trim())
   return values
+}
+
+/**
+ * Получает список всех листов в таблице с их gid и названиями
+ * Использует Google Sheets API v4 или Google Apps Script
+ * @returns {Promise<Array<{name: string, gid: number}>>} Массив объектов с названием и gid листов
+ */
+async function getSheetsList() {
+  try {
+    const spreadsheetId = getSpreadsheetId()
+    const scriptId = getGoogleAppsScriptId()
+    
+    // Способ 1: Используем Google Apps Script для получения списка листов
+    // Это работает без API ключа и для любых таблиц (публичных и приватных)
+    if (scriptId && !scriptId.includes('YOUR_SCRIPT_ID')) {
+      try {
+        const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec?action=getSheetsList`
+        const response = await fetch(scriptUrl, {
+          method: 'GET',
+          mode: 'cors' // Используем cors для возможности прочитать ответ
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.sheets && Array.isArray(data.sheets)) {
+            return data.sheets.map(sheet => ({
+              name: sheet.name,
+              gid: sheet.gid
+            }))
+          }
+        }
+      } catch (error) {
+        // Продолжаем к следующему способу
+      }
+    }
+    
+    // Способ 2: Пробуем получить через Google Sheets API v4
+    // Для публичных таблиц может работать без API ключа
+    try {
+      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`
+      const response = await fetch(apiUrl)
+      
+      if (response.ok) {
+        const data = await response.json()
+        const sheets = []
+        
+        if (data.sheets && Array.isArray(data.sheets)) {
+          data.sheets.forEach((sheet) => {
+            if (sheet.properties) {
+              sheets.push({
+                name: sheet.properties.title,
+                gid: sheet.properties.sheetId
+              })
+            }
+          })
+          
+          if (sheets.length > 0) {
+            return sheets
+          }
+        }
+      }
+    } catch (error) {
+      // Если API v4 не работает (требует ключ или OAuth), возвращаем null
+      // Будет использован fallback метод
+    }
+    
+    // Если оба способа не сработали, возвращаем null
+    // Будет использован fallback метод перебора gid
+    return null
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * Загружает список всех турниров из листа "Tournaments"
+ * Сначала получает список всех листов, затем ищет лист "Tournaments" и загружает данные
+ * @returns {Promise<Array>} Массив турниров
+ */
+export async function loadTournamentsList() {
+  try {
+    const spreadsheetId = getSpreadsheetId()
+    const tournaments = []
+    
+    // Константа для названия листа с турнирами
+    const TOURNAMENTS_SHEET_NAME = 'Tournaments'
+    
+    // Шаг 1: Получаем список всех листов
+    const sheetsList = await getSheetsList()
+    console.log('📋 [loadTournamentsList] Список листов от Google:', sheetsList)
+    
+    let targetGid = null
+    
+    if (sheetsList && sheetsList.length > 0) {
+      // Ищем лист "Tournaments" по названию
+      const tournamentsSheet = sheetsList.find(sheet => 
+        sheet.name === TOURNAMENTS_SHEET_NAME || 
+        sheet.name.toLowerCase() === TOURNAMENTS_SHEET_NAME.toLowerCase()
+      )
+      
+      console.log('🔍 [loadTournamentsList] Найден лист "Tournaments":', tournamentsSheet)
+      
+      if (tournamentsSheet) {
+        targetGid = tournamentsSheet.gid
+        console.log('✅ [loadTournamentsList] Используем gid для листа "Tournaments":', targetGid)
+      } else {
+        // Если не нашли по названию, пробуем найти по содержимому
+        // Проверяем все листы на наличие заголовков турниров
+        for (const sheet of sheetsList) {
+          try {
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheet.gid}`
+            const response = await fetch(csvUrl, {
+              redirect: 'follow',
+              credentials: 'omit'
+            })
+            
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer()
+              const decoder = new TextDecoder('utf-8')
+              const csvText = decoder.decode(arrayBuffer)
+              const lines = csvText.split('\n').filter(line => line.trim())
+              
+              // Проверяем первые строки на наличие заголовков турниров
+              for (let i = 0; i < Math.min(5, lines.length); i++) {
+                const line = lines[i].trim().toLowerCase()
+                if (line.includes('id') && line.includes('name') && 
+                    (line.includes('startdate') || line.includes('enddate') || 
+                     line.includes('description') || line.includes('createdat'))) {
+                  // Проверяем, что это не лист турнира (нет секций TEAMS/GAMES)
+                  if (!csvText.includes('TEAMS') && !csvText.includes('GAMES') && !csvText.includes('STANDINGS')) {
+                    targetGid = sheet.gid
+                    break
+                  }
+                }
+              }
+              
+              if (targetGid !== null) {
+                break
+              }
+            }
+          } catch (error) {
+            // Продолжаем проверку следующего листа
+            continue
+          }
+        }
+      }
+    }
+    
+    // Шаг 2: Если нашли лист, загружаем данные
+    if (targetGid !== null) {
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
+      const response = await fetch(csvUrl, {
+        redirect: 'follow',
+        credentials: 'omit'
+      })
+      
+      if (!response.ok) {
+        return tournaments
+      }
+      
+      const arrayBuffer = await response.arrayBuffer()
+      const decoder = new TextDecoder('utf-8')
+      const csvText = decoder.decode(arrayBuffer)
+      const lines = csvText.split('\n').filter(line => line.trim())
+      
+      console.log('📄 [loadTournamentsList] CSV данные (первые 20 строк):', lines.slice(0, 20))
+      console.log('📄 [loadTournamentsList] Всего строк в CSV:', lines.length)
+      console.log('📄 [loadTournamentsList] Полный CSV текст (первые 500 символов):', csvText.substring(0, 500))
+      
+      if (lines.length === 0) {
+        console.log('⚠️ [loadTournamentsList] CSV пустой, возвращаем пустой массив')
+        return tournaments
+      }
+      
+      let isTournamentsSection = false
+      let headerFound = false
+      let headerIndex = -1
+        
+        // Ищем лист "Tournaments" по характерным признакам:
+        // 1. Заголовки: id, name, startDate, endDate, description, createdAt
+        // 2. НЕТ секций TEAMS, GAMES, STANDINGS (это отличает от листов турниров)
+        // 3. Первая строка должна быть заголовком с id и name
+        // 4. Данные должны начинаться сразу после заголовка (без секций TEAMS/GAMES)
+        
+        // Проверяем первые несколько строк на наличие заголовков турниров
+        for (let i = 0; i < Math.min(15, lines.length); i++) {
+          const line = lines[i].trim()
+          
+          // Пропускаем пустые строки
+          if (!line) continue
+          
+          const values = parseCSVLine(line)
+          
+          // Если видим секции TEAMS, GAMES, STANDINGS - это НЕ лист "Tournaments"
+          if (line.includes('TEAMS') || line.includes('GAMES') || line.includes('STANDINGS') ||
+              line.includes('Команды') || line.includes('Игры') || line.includes('Турнирная таблица')) {
+            // Это лист турнира, а не список турниров - пропускаем
+            break
+          }
+          
+          // Проверяем, является ли это заголовком турниров из листа "Tournaments"
+          // Вариант 1: Полный набор заголовков (id, name, startDate, endDate, description, createdAt)
+          if (line.toLowerCase().includes('id') && 
+              line.toLowerCase().includes('name') && 
+              (line.toLowerCase().includes('startdate') || 
+               line.toLowerCase().includes('enddate') || 
+               line.toLowerCase().includes('description') || 
+               line.toLowerCase().includes('createdat'))) {
+            // Проверяем, что это именно заголовок (id и name в первых двух колонках)
+            if (values.length >= 2 && 
+                (values[0].trim().toLowerCase() === 'id') &&
+                (values[1].trim().toLowerCase() === 'name')) {
+              isTournamentsSection = true
+              headerFound = true
+              headerIndex = i
+              console.log('✅ [loadTournamentsList] Найден заголовок турниров на строке:', i, 'Содержимое:', line)
+              break
+            }
+          }
+           
+          // Вариант 2: Упрощенный вариант - если есть id и name в первых двух колонках
+          // И это не секция TEAMS или GAMES (уже проверили выше)
+          if (values.length >= 2 && 
+              (values[0].trim().toLowerCase() === 'id') &&
+              (values[1].trim().toLowerCase() === 'name')) {
+            // Дополнительная проверка: если в строке есть startDate, endDate, description или createdAt - точно турниры
+            if (line.toLowerCase().includes('startdate') || 
+                line.toLowerCase().includes('enddate') || 
+                line.toLowerCase().includes('description') || 
+                line.toLowerCase().includes('createdat')) {
+              isTournamentsSection = true
+              headerFound = true
+              headerIndex = i
+              break
+            }
+            // Если нет других полей, но есть хотя бы 4 колонки - возможно это турниры
+            // Также проверяем следующую строку - если там длинный ID (не число), это турниры
+            if (values.length >= 4 || (i + 1 < lines.length && lines[i + 1].trim())) {
+              const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : ''
+              if (nextLine) {
+                const nextValues = parseCSVLine(nextLine)
+                if (nextValues.length >= 2 && nextValues[0] && nextValues[0].trim()) {
+                  const nextId = nextValues[0].trim()
+                  // Если следующий ID длинный (больше 3 символов) или содержит буквы - это турнир
+                  // И проверяем, что следующая строка не является секцией TEAMS/GAMES
+                  if (!nextLine.includes('TEAMS') && !nextLine.includes('GAMES') && 
+                      !nextLine.includes('STANDINGS') &&
+                      (nextId.length > 3 || (nextId.length > 0 && isNaN(nextId)))) {
+                    isTournamentsSection = true
+                    headerFound = true
+                    headerIndex = i
+                    break
+                  }
+                }
+              } else if (values.length >= 4) {
+                // Если следующей строки нет, но есть 4+ колонки, считаем что это турниры
+                isTournamentsSection = true
+                headerFound = true
+                headerIndex = i
+                break
+              }
+            }
+          }
+        }
+        
+        // Если нашли заголовки, парсим данные (только один раз!)
+        if (isTournamentsSection && headerFound) {
+          console.log('📝 [loadTournamentsList] Начинаем парсинг данных турниров, заголовок на строке:', headerIndex)
+          const seenIds = new Set() // Для отслеживания уникальности ID
+          
+          for (let i = headerIndex + 1; i < lines.length; i++) {
+            const line = lines[i].trim()
+            
+            // Если видим другую секцию (TEAMS, GAMES, STANDINGS), прекращаем парсинг
+            if (line.includes('TEAMS') || line.includes('GAMES') || line.includes('STANDINGS') || 
+                line.includes('Команды') || line.includes('Игры') || line.includes('Турнирная таблица')) {
+              console.log('🛑 [loadTournamentsList] Обнаружена другая секция, прекращаем парсинг на строке:', i)
+              break
+            }
+            
+            if (line && line.trim()) {
+              const values = parseCSVLine(line)
+              console.log('🔍 [loadTournamentsList] Парсим строку', i, ':', line, '→ значения:', values)
+              
+              // Ожидаем: id, name, startDate, endDate, description, createdAt
+              // Проверяем, что это не заголовок и есть хотя бы id и name
+              if (values.length >= 2 && 
+                  values[0] && values[0].trim() && 
+                  values[0].trim() !== 'id' && 
+                  values[0].trim() !== 'name') {
+                
+                // Проверяем, что это не заголовок другой секции
+                if (values[0].trim().includes('TEAMS') || 
+                    values[0].trim().includes('GAMES') || 
+                    values[0].trim().includes('STANDINGS')) {
+                  break
+                }
+                
+                // Проверяем, что ID турнира не является числом команды
+                // ID турнира обычно длиннее (например, mj5l4l06jjqkhrwpr) или это не просто число
+                const tournamentId = String(values[0].trim())
+                const tournamentName = String(values[1] || '').trim()
+                
+                // Если ID - это короткое число (1-2 цифры), это скорее всего команда, а не турнир
+                // ID турнира обычно длиннее или содержит буквы
+                if (tournamentId.length <= 2 && !isNaN(tournamentId)) {
+                  // Это может быть команда, пропускаем
+                  continue
+                }
+                
+                // Если имя пустое, пропускаем
+                if (!tournamentName || tournamentName.trim() === '') {
+                  continue
+                }
+                
+                // Проверяем уникальность ID, чтобы избежать дублирования
+                if (seenIds.has(tournamentId)) {
+                  console.log('⚠️ [loadTournamentsList] Дубликат ID пропущен:', tournamentId)
+                  continue
+                }
+                seenIds.add(tournamentId)
+                
+                const tournamentObj = {
+                  id: tournamentId,
+                  name: tournamentName,
+                  startDate: values[2] ? String(values[2]).trim() : '',
+                  endDate: values[3] ? String(values[3]).trim() : '',
+                  description: values[4] ? String(values[4]).trim() : '',
+                  createdAt: values[5] ? String(values[5]).trim() : new Date().toISOString()
+                }
+                
+                console.log('✅ [loadTournamentsList] Добавлен турнир:', tournamentObj)
+                tournaments.push(tournamentObj)
+              }
+            }
+          }
+          
+          // Если нашли турниры через основной метод, возвращаем результат сразу
+          // Не выполняем fallback метод
+          if (tournaments.length > 0) {
+            console.log('🎉 [loadTournamentsList] Найдено турниров через основной метод:', tournaments.length)
+            console.log('📦 [loadTournamentsList] Все турниры:', tournaments)
+            return tournaments
+          }
+        }
+    } else {
+      // Если не удалось получить список листов, используем старый метод (fallback)
+      // Пробуем несколько листов (gid от 0 до 20, но останавливаемся после 5 ошибок подряд)
+      let consecutiveErrors = 0
+      const maxConsecutiveErrors = 5
+      
+      for (let gid = 0; gid <= 20; gid++) {
+        try {
+          const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`
+          const response = await fetch(csvUrl, {
+            redirect: 'follow',
+            credentials: 'omit'
+          })
+          
+          if (!response.ok || response.status === 400) {
+            consecutiveErrors++
+            if (consecutiveErrors >= maxConsecutiveErrors) {
+              break
+            }
+            continue
+          }
+          
+          consecutiveErrors = 0
+          
+          const arrayBuffer = await response.arrayBuffer()
+          const decoder = new TextDecoder('utf-8')
+          const csvText = decoder.decode(arrayBuffer)
+          const lines = csvText.split('\n').filter(line => line.trim())
+          
+          if (lines.length === 0) {
+            continue
+          }
+          
+          // Проверяем, что это лист "Tournaments" (нет секций TEAMS/GAMES)
+          if (!csvText.includes('TEAMS') && !csvText.includes('GAMES') && !csvText.includes('STANDINGS')) {
+            // Проверяем наличие заголовков турниров
+            for (let i = 0; i < Math.min(5, lines.length); i++) {
+              const line = lines[i].trim().toLowerCase()
+              if (line.includes('id') && line.includes('name') && 
+                  (line.includes('startdate') || line.includes('enddate') || 
+                   line.includes('description') || line.includes('createdat'))) {
+                // Нашли лист "Tournaments", парсим данные
+                const headerIndex = i
+                for (let j = headerIndex + 1; j < lines.length; j++) {
+                  const dataLine = lines[j].trim()
+                  if (!dataLine) continue
+                  
+                  const values = parseCSVLine(dataLine)
+                  if (values.length >= 2 && values[0] && values[0].trim() !== 'id') {
+                    const tournamentId = String(values[0].trim())
+                    const tournamentName = String(values[1] || '').trim()
+                    
+                    if (tournamentId.length > 2 && tournamentName) {
+                      const tournamentObj = {
+                        id: tournamentId,
+                        name: tournamentName,
+                        startDate: values[2] ? String(values[2]).trim() : '',
+                        endDate: values[3] ? String(values[3]).trim() : '',
+                        description: values[4] ? String(values[4]).trim() : '',
+                        createdAt: values[5] ? String(values[5]).trim() : new Date().toISOString()
+                      }
+                      console.log('✅ [loadTournamentsList] Добавлен турнир (fallback):', tournamentObj)
+                      tournaments.push(tournamentObj)
+                    }
+                  }
+                }
+                
+                if (tournaments.length > 0) {
+                  return tournaments
+                }
+                break
+              }
+            }
+          }
+        } catch (error) {
+          consecutiveErrors++
+          if (consecutiveErrors >= maxConsecutiveErrors) {
+            break
+          }
+          continue
+        }
+      }
+    }
+    
+    console.log('📊 [loadTournamentsList] Итоговый результат:', tournaments)
+    console.log('📊 [loadTournamentsList] Количество турниров:', tournaments.length)
+    console.log('📊 [loadTournamentsList] Детали каждого турнира:')
+    tournaments.forEach((tournament, index) => {
+      console.log(`  ${index + 1}.`, JSON.stringify(tournament, null, 2))
+    })
+    return tournaments
+  } catch (error) {
+    console.error('❌ [loadTournamentsList] Ошибка загрузки списка турниров:', error)
+    return []
+  }
+}
+
+/**
+ * Создает новый турнир
+ * @param {Object} tournamentData - Данные турнира {name, startDate, endDate, description}
+ * @returns {Promise<{success: boolean, tournamentId: string|null, error: string|null}>}
+ */
+export async function createTournament(tournamentData) {
+  try {
+    const scriptId = getGoogleAppsScriptId()
+    const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec`
+    
+    if (scriptId.includes('YOUR_SCRIPT_ID') || !scriptId) {
+      return { success: false, tournamentId: null, error: 'Google Apps Script не настроен' }
+    }
+    
+    // Генерируем уникальный ID для турнира
+    const tournamentId = Date.now().toString(36) + Math.random().toString(36).substr(2, 9)
+    
+    const data = {
+      action: 'createTournament',
+      tournament: {
+        id: tournamentId,
+        name: tournamentData.name,
+        startDate: tournamentData.startDate || '',
+        endDate: tournamentData.endDate || '',
+        description: tournamentData.description || '',
+        createdAt: new Date().toISOString()
+      }
+    }
+    
+    try {
+      await fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+      
+      // В режиме no-cors невозможно проверить успешность запроса напрямую
+      // Предполагаем успех, если запрос отправлен
+      return { success: true, tournamentId, error: null }
+    } catch (error) {
+      return { success: false, tournamentId: null, error: error.message }
+    }
+  } catch (error) {
+    return { success: false, tournamentId: null, error: error.message }
+  }
+}
+
+/**
+ * Удаляет турнир из Google Sheets
+ * @param {string} tournamentId - ID турнира для удаления
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
+export async function deleteTournament(tournamentId) {
+  try {
+    const scriptId = getGoogleAppsScriptId()
+    const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec`
+    
+    if (scriptId.includes('YOUR_SCRIPT_ID') || !scriptId) {
+      return { success: false, error: 'Google Apps Script не настроен' }
+    }
+    
+    if (!tournamentId) {
+      return { success: false, error: 'ID турнира не указан' }
+    }
+    
+    const data = {
+      action: 'deleteTournament',
+      tournamentId: tournamentId
+    }
+    
+    console.log('🗑️ [deleteTournament] Отправка запроса на удаление турнира:', tournamentId)
+    
+    try {
+      // Используем no-cors mode, так как Google Apps Script не поддерживает CORS
+      // В этом режиме невозможно проверить успешность запроса напрямую
+      // Предполагаем успех, если запрос отправлен без ошибок
+      await fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+      
+      // В режиме no-cors невозможно проверить успешность запроса напрямую
+      // Предполагаем успех, если запрос отправлен
+      // Фактическую проверку удаления делаем через синхронизацию списка турниров
+      console.log('✅ [deleteTournament] Запрос на удаление отправлен:', tournamentId)
+      return { success: true, error: null }
+    } catch (error) {
+      console.error('❌ [deleteTournament] Ошибка при отправке запроса:', error)
+      return { success: false, error: error.message || 'Ошибка при удалении турнира' }
+    }
+  } catch (error) {
+    console.error('❌ [deleteTournament] Общая ошибка:', error)
+    return { success: false, error: error.message || 'Неизвестная ошибка' }
+  }
 }
 

@@ -1,8 +1,12 @@
 import { useLanguage } from '../i18n/LanguageContext'
 
-function ConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
+function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmButtonStyle }) {
   const { t } = useLanguage()
   if (!isOpen) return null
+
+  const confirmButtonClass = confirmButtonStyle === 'success' 
+    ? 'btn-confirm btn-success' 
+    : 'btn-confirm'
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -13,7 +17,7 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
           <button className="btn-cancel" onClick={onClose}>
             {t('cancel')}
           </button>
-          <button className="btn-confirm" onClick={onConfirm}>
+          <button className={confirmButtonClass} onClick={onConfirm}>
             {t('confirm')}
           </button>
         </div>
