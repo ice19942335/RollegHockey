@@ -3,7 +3,7 @@
 
 // Set to true for development mode (uses dev spreadsheet)
 // Set to false for production mode (uses production spreadsheet)
-export const IS_DEV_MODE = true
+export const IS_DEV_MODE = false
 // Development Google Sheets Configuration
 export const DEV_SPREADSHEET_ID = 'YOUR_DEV_SPREADSHEET_ID_HERE'
 export const DEV_GOOGLE_APPS_SCRIPT_ID = 'YOUR_DEV_SCRIPT_ID_HERE'
