@@ -489,7 +489,7 @@
   .navigation {
     margin: 0;
   }
-
+  
   .navigation-container {
     flex-direction: column !important;
     align-items: center !important;
@@ -3305,6 +3305,7 @@
   .tournament-card-description {
     font-size: 0.85rem;
   }
+  
 }
 
 .loading-tournaments {
@@ -3336,9 +3337,11 @@
 
 /* Create Tournament Form Styles */
 .create-tournament-container {
-  max-width: 600px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .create-tournament-container h1 {
@@ -3368,17 +3371,42 @@
 .form-group input,
 .form-group textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 10px;
   font-size: 1rem;
   box-sizing: border-box;
+  background: #f5f5f5;
+  transition: all 0.3s ease;
+  color: #333;
+}
+
+.form-group input[type="date"] {
+  color: #666;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.4);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.form-group input[type="date"]::-webkit-datetime-edit-text,
+.form-group input[type="date"]::-webkit-datetime-edit-month-field,
+.form-group input[type="date"]::-webkit-datetime-edit-day-field,
+.form-group input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #666;
+}
+
+.form-group input[type="date"]:not(:focus):invalid {
+  color: #999;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #FFD700;
+  background: #fffef5;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
 }
 
 .form-group textarea {
@@ -3397,6 +3425,20 @@
   color: #ff6b6b;
   font-size: 0.9rem;
   margin-top: 0.5rem;
+}
+
+/* Mobile styles for Create Tournament Form - must come after base styles */
+@media (max-width: 768px) {
+  .create-tournament-container {
+    padding: 0.5rem 0.25rem !important;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-tournament-container {
+    padding: 0.5rem 0.15rem !important;
+  }
 }
 
 /* Tournament View Styles */
