@@ -2,6 +2,7 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+  padding-top: calc(2rem + 80px); /* Add space for fixed navigation */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -55,16 +56,17 @@
 
 /* Navigation Menu */
 .navigation {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 999;
   background: #333;
   backdrop-filter: blur(10px);
   border-bottom: 2px solid rgba(255, 215, 0, 0.3);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  margin: -2rem calc(-50vw + 50%) 2rem calc(-50vw + 50%);
   padding: 0;
-  width: 100vw;
+  width: 100%;
 }
 
 .navigation-container {
@@ -382,8 +384,12 @@
 }
 
 @media (max-width: 768px) {
+  .app {
+    padding-top: calc(0.5rem + 60px); /* Add space for fixed navigation on mobile */
+  }
+
   .navigation {
-    margin: -2rem -1rem 1rem -1rem;
+    margin: 0;
   }
 
   .navigation-container {
@@ -476,8 +482,12 @@
 }
 
 @media (max-width: 480px) {
+  .app {
+    padding-top: calc(0.25rem + 50px); /* Add space for fixed navigation on small mobile */
+  }
+
   .navigation {
-    margin: -2rem -0.5rem 1rem -0.5rem;
+    margin: 0;
   }
 
   .navigation-container {
@@ -1931,6 +1941,7 @@
 @media (max-width: 768px) {
   .app {
     padding: 0.5rem;
+    padding-top: calc(0.5rem + 100px); /* Increased space for fixed navigation on mobile */
     max-width: 100%;
   }
 
@@ -2360,6 +2371,7 @@
 @media (max-width: 480px) {
   .app {
     padding: 0.25rem;
+    padding-top: calc(0.25rem + 90px); /* Increased space for fixed navigation on small mobile */
     max-width: 100%;
   }
 
