@@ -1023,6 +1023,11 @@
   margin: 0;
   line-height: 1.6;
   font-style: italic;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
@@ -1033,6 +1038,13 @@
   
   .tournament-title-section {
     padding: 1.5rem;
+  }
+  
+  .tournament-description {
+    font-size: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 }
 
@@ -3967,6 +3979,7 @@
   justify-content: center;
   box-sizing: border-box;
   align-self: stretch;
+  gap: 0.5rem;
 }
 
 .round-generator-generate-btn:hover:not(:disabled) {
@@ -3978,6 +3991,17 @@
 .round-generator-generate-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.button-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(51, 51, 51, 0.3);
+  border-top: 2px solid #333;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .round-generator-number-select:focus + .round-generator-generate-btn {

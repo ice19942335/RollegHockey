@@ -209,7 +209,14 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
             onClick={handleGenerate}
             disabled={!selectedNumber || selectedTeams.length < 2 || isGenerating}
           >
-            {isGenerating ? '...' : t('generate')}
+            {isGenerating ? (
+              <>
+                <span className="button-spinner"></span>
+                {t('generating')}
+              </>
+            ) : (
+              t('generate')
+            )}
           </button>
         </div>
       </div>
