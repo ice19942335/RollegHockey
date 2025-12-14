@@ -3625,3 +3625,335 @@
   box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }
 
+/* Tournament Round Generator */
+.tournament-round-generator {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.round-generator-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex-wrap: nowrap;
+  margin-bottom: 1rem;
+}
+
+.round-generator-generate-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.round-generator-number-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #FFA000;
+  margin-bottom: 0;
+}
+
+.round-generator-generate-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+
+.round-generator-team-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 10px 0 0 10px;
+  border-right: none;
+  background: white;
+  color: #FFA000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
+}
+
+.round-generator-number-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 10px 0 0 10px;
+  border-right: none;
+  background: white;
+  color: #FFA000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
+}
+
+.round-generator-number-select:focus,
+.round-generator-team-select:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+}
+
+.round-generator-team-select:focus {
+  border-right: 2px solid #FFD700;
+}
+
+.round-generator-number-select:focus {
+  border-right: 2px solid #FFD700;
+}
+
+.round-generator-number-select:hover,
+.round-generator-team-select:hover {
+  border-color: #FFD700;
+  background: #fffef5;
+}
+
+.round-generator-number-select option,
+.round-generator-team-select option {
+  background: white;
+  color: #FFA000;
+  padding: 0.5rem;
+}
+
+.round-generator-number-select option:checked,
+.round-generator-team-select option:checked {
+  background: #FFD700;
+  color: #333;
+}
+
+.round-generator-add-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border: 2px solid #ddd;
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 50px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  align-self: stretch;
+}
+
+.round-generator-add-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #45a049 0%, #4CAF50 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  border-color: #FFD700;
+}
+
+.round-generator-team-select:focus + .round-generator-add-btn {
+  border-color: #FFD700;
+}
+
+.round-generator-add-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.round-generator-generate-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid #ddd;
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  align-self: stretch;
+}
+
+.round-generator-generate-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+  border-color: #FFD700;
+}
+
+.round-generator-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.round-generator-number-select:focus + .round-generator-generate-btn {
+  border-color: #FFD700;
+}
+
+.round-generator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0;
+}
+
+.round-generator-list h3 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.round-generator-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.round-generator-item .round-generator-team-select {
+  flex: 1;
+  min-width: 0;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+}
+
+.round-generator-remove-btn {
+  padding: 0.5rem 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.round-generator-remove-btn:hover {
+  background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+  border-color: #FFD700;
+}
+
+.round-generator-item .round-generator-team-select:focus {
+  border-color: #FFD700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+}
+
+.round-generator-empty {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 1rem;
+  margin-top: 0;
+}
+
+/* Responsive styles for Tournament Round Generator */
+@media (max-width: 768px) {
+  .round-generator-controls {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .round-generator-list {
+    margin-top: 0;
+  }
+
+  .round-generator-team-select {
+    flex: 1;
+    min-width: 0;
+    border-radius: 10px 0 0 10px;
+  }
+
+  .round-generator-add-btn {
+    width: auto;
+    min-width: 50px;
+    flex-shrink: 0;
+  }
+
+  .round-generator-item {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .round-generator-remove-btn {
+    width: auto;
+    min-width: 40px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .round-generator-controls {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .round-generator-list {
+    margin-top: 0;
+  }
+
+  .round-generator-generate-controls {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .round-generator-number-select {
+    flex: 1;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 10px 0 0 10px;
+  }
+
+  .round-generator-generate-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    width: auto;
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+
+  .round-generator-team-select {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 10px 0 0 10px;
+  }
+
+  .round-generator-add-btn {
+    padding: 0.6rem 1rem;
+    font-size: 1.2rem;
+    width: auto;
+    min-width: 50px;
+    flex-shrink: 0;
+  }
+
+  .round-generator-remove-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 1.2rem;
+  }
+}
+

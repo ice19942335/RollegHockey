@@ -140,6 +140,15 @@ export const translations = {
     deleteTournamentSyncing: 'Синхронизация с сервером...',
     deletingTournamentTitle: 'Удаление турнира',
     deletingTournamentMessage: 'Идет удаление турнира. Пожалуйста, подождите...',
+    
+    // Tournament Round Generator
+    tournamentRoundGenerator: 'Генератор туров',
+    selectNumber: 'Количество туров',
+    selectTeamToAdd: 'Выберите команду',
+    generate: 'Сгенерировать',
+    removeTeam: 'Удалить',
+    selectedTeams: 'Выбранные команды',
+    noTeamsSelected: 'Команды не выбраны',
   },
   lv: {
     // Header
@@ -282,6 +291,15 @@ export const translations = {
     deleteTournamentSyncing: 'Sinhronizācija ar serveri...',
     deletingTournamentTitle: 'Turnīra dzēšana',
     deletingTournamentMessage: 'Notiek turnīra dzēšana. Lūdzu, uzgaidiet...',
+    
+    // Tournament Round Generator
+    tournamentRoundGenerator: 'Turnīru ģenerators',
+    selectNumber: 'Tūru skaits',
+    selectTeamToAdd: 'Izvēlieties komandu',
+    generate: 'Ģenerēt',
+    removeTeam: 'Dzēst',
+    selectedTeams: 'Izvēlētās komandas',
+    noTeamsSelected: 'Komandas nav izvēlētas',
   }
 }
 

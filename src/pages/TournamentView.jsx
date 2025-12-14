@@ -5,6 +5,7 @@ import Header from '../components/Header'
 import { useLanguage } from '../i18n/LanguageContext'
 import TeamForm from '../components/TeamForm'
 import TeamList from '../components/TeamList'
+import TournamentRoundGenerator from '../components/TournamentRoundGenerator'
 import GameForm from '../components/GameForm'
 import GamesList from '../components/GamesList'
 import StandingsTable from '../components/StandingsTable'
@@ -544,6 +545,10 @@ function TournamentView() {
             onDeleteTeam={deleteTeam}
             onUpdateTeamName={updateTeamName}
           />
+        </section>
+
+        <section className="section">
+          <TournamentRoundGenerator teams={teams} />
         </section>
 
         {teams.length >= 2 && (
