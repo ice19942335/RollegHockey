@@ -453,6 +453,25 @@
   .nav-item:hover {
     transform: none;
     font-size: 0.95rem;
+    position: relative;
+    top: 0;
+    left: 0;
+    margin: 0;
+    border-top: 1px solid rgba(255, 215, 0, 0.3);
+    box-sizing: border-box;
+  }
+
+  .nav-item:first-of-type:hover {
+    border-top: none;
+  }
+
+  .nav-item-danger:hover {
+    border-top: 1px solid rgba(255, 215, 0, 0.3) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    margin: 0;
+    box-sizing: border-box;
   }
 }
 
@@ -523,6 +542,8 @@
     line-height: 1.4;
     margin: 0;
     display: block;
+    position: relative;
+    box-sizing: border-box;
   }
   
   .nav-item:first-of-type {
@@ -541,6 +562,25 @@
   .nav-item:hover {
     transform: none;
     font-size: 0.9rem;
+    position: relative;
+    top: 0;
+    left: 0;
+    margin: 0;
+    border-top: 1px solid rgba(255, 215, 0, 0.3);
+    box-sizing: border-box;
+  }
+
+  .nav-item:first-of-type:hover {
+    border-top: none;
+  }
+
+  .nav-item-danger:hover {
+    border-top: 1px solid rgba(255, 215, 0, 0.3) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    margin: 0;
+    box-sizing: border-box;
   }
 }
 
