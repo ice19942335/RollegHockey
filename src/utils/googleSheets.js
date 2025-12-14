@@ -37,25 +37,59 @@ export async function loadDataFromSheets(tournamentId = null) {
       }
     }
     
-    // Используем публичный CSV экспорт
-    // ВАЖНО: Используем только docs.google.com, НЕ googleusercontent.com
+    // Пробуем загрузить данные через CSV экспорт
     const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
     
-    // Используем redirect: 'follow' для автоматического следования редиректам
-    // но НЕ используем внутренние URL googleusercontent.com напрямую
-    const response = await fetch(csvUrl, {
-      redirect: 'follow',
-      // Не передаем cookies, чтобы использовать публичный доступ
-      credentials: 'omit'
-    })
-    
-    // Обрабатываем ошибки доступа к таблице
-    if (!response.ok || response.status !== 200) {
-      if (response.status === 403 || response.status === 400) {
-        console.warn('⚠️ [loadDataFromSheets] Таблица недоступна (возможно, приватная или неправильно настроена):', response.status)
+    let response
+    try {
+      // Используем redirect: 'follow' для автоматического следования редиректам
+      response = await fetch(csvUrl, {
+        redirect: 'follow',
+        // Не передаем cookies, чтобы использовать публичный доступ
+        credentials: 'omit',
+        // Добавляем заголовки для лучшей совместимости
+        headers: {
+          'Accept': 'text/csv,text/plain,*/*'
+        }
+      })
+      
+      // Обрабатываем ошибки доступа к таблице
+      if (!response.ok || response.status !== 200) {
+        throw new Error(`CSV export failed with status ${response.status}`)
       }
-      // Возвращаем пустые данные вместо ошибки, чтобы приложение продолжало работать
-      return { teams: [], games: [] }
+    } catch (error) {
+      // Если прямой CSV экспорт не работает, пробуем через Google Apps Script как fallback
+      console.warn('⚠️ [loadDataFromSheets] Прямой CSV экспорт не работает, пробуем через Google Apps Script:', error.message)
+      
+      const scriptId = getGoogleAppsScriptId()
+      if (scriptId && !scriptId.includes('YOUR_SCRIPT_ID')) {
+        try {
+          const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec?action=getSheetData&gid=${targetGid}`
+          const scriptResponse = await fetch(scriptUrl, {
+            method: 'GET',
+            mode: 'cors'
+          })
+          
+          if (scriptResponse.ok) {
+            const data = await scriptResponse.json()
+            if (data.success && data.csv) {
+              // Используем CSV данные из Google Apps Script
+              const lines = data.csv.split('\n').filter(line => line.trim())
+              // Продолжаем обработку как обычно
+              response = { ok: true, arrayBuffer: async () => new TextEncoder().encode(data.csv) }
+            } else {
+              return { teams: [], games: [] }
+            }
+          } else {
+            return { teams: [], games: [] }
+          }
+        } catch (scriptError) {
+          console.warn('⚠️ [loadDataFromSheets] Google Apps Script fallback также не работает:', scriptError.message)
+          return { teams: [], games: [] }
+        }
+      } else {
+        return { teams: [], games: [] }
+      }
     }
     
     // Получаем данные как ArrayBuffer для правильной обработки кодировки
@@ -496,14 +530,22 @@ export async function loadTournamentsList() {
     // Шаг 2: Если нашли лист, загружаем данные
     if (targetGid !== null) {
       const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${targetGid}`
-      const response = await fetch(csvUrl, {
-        redirect: 'follow',
-        credentials: 'omit'
-      })
       
-      // Пропускаем ошибки 400 (Bad Request) и 403 (Forbidden) - таблица может быть приватной
-      if (!response.ok || response.status !== 200) {
-        console.warn('⚠️ [loadTournamentsList] Не удалось загрузить CSV (возможно, таблица приватная):', response.status)
+      let response
+      try {
+        response = await fetch(csvUrl, {
+          redirect: 'follow',
+          credentials: 'omit',
+          headers: {
+            'Accept': 'text/csv,text/plain,*/*'
+          }
+        })
+        
+        if (!response.ok || response.status !== 200) {
+          throw new Error(`CSV export failed with status ${response.status}`)
+        }
+      } catch (error) {
+        console.warn('⚠️ [loadTournamentsList] Не удалось загрузить CSV:', error.message)
         return tournaments
       }
       
