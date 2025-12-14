@@ -1,10 +1,9 @@
-// Google Sheets Configuration Example
-// Copy this file to googleSheets.js and fill in your values
+// Google Sheets Configuration
+// Switch between development and production modes
 
 // Set to true for development mode (uses dev spreadsheet)
 // Set to false for production mode (uses production spreadsheet)
-export const IS_DEV_MODE = false
-
+export const IS_DEV_MODE = true
 // Development Google Sheets Configuration
 export const DEV_SPREADSHEET_ID = 'YOUR_DEV_SPREADSHEET_ID_HERE'
 export const DEV_GOOGLE_APPS_SCRIPT_ID = 'YOUR_DEV_SCRIPT_ID_HERE'
