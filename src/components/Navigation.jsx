@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../i18n/LanguageContext'
 import NavItem from './NavItem'
 import { menuItems } from '../config/menuItems'
 
-function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onClearDatabase }) {
+function Navigation() {
+  const navigate = useNavigate()
   const { t, language, changeLanguage } = useLanguage()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isVertical, setIsVertical] = useState(false)
@@ -13,10 +15,14 @@ function Navigation({ onCreateTournament, onTournamentsList, onPlayoffsList, onC
   const containerRef = useRef(null)
 
   const menuHandlers = {
-    createTournament: onCreateTournament,
-    tournamentsList: onTournamentsList,
-    playoffsList: onPlayoffsList,
-    clearDatabase: onClearDatabase
+    createTournament: () => navigate('/create'),
+    tournamentsList: () => navigate('/'),
+    playoffsList: () => {
+      alert(t('functionInDevelopment'))
+    },
+    clearDatabase: () => {
+      alert(t('functionInDevelopment'))
+    }
   }
 
   useEffect(() => {

@@ -92,6 +92,41 @@ export const translations = {
     menuClearDatabase: 'Очистить БД',
     clearDatabaseConfirm: 'Это действие удалит все команды и игры. Продолжить?',
     clearDatabaseEmpty: 'База данных уже пуста.',
+    functionInDevelopment: 'Функция в разработке',
+    
+    // Tournament List
+    tournamentsListTitle: 'Список турниров',
+    createTournamentButton: 'Создать турнир',
+    noTournaments: 'Турниры не найдены',
+    loadingTournaments: 'Загрузка турниров...',
+    teams: 'Команды',
+    descriptionLabel: 'Описание',
+    showMore: 'Показать больше',
+    showLess: 'Показать меньше',
+    
+    // Create Tournament
+    createTournamentTitle: 'Создать турнир',
+    tournamentName: 'Название турнира',
+    tournamentNamePlaceholder: 'Введите название турнира',
+    tournamentNameRequired: 'Название турнира обязательно',
+    startDate: 'Дата начала',
+    endDate: 'Дата окончания',
+    description: 'Описание',
+    descriptionPlaceholder: 'Введите описание турнира (необязательно)',
+    createButton: 'Создать',
+    cancelButton: 'Отмена',
+    
+    // Creating Tournament Modal
+    creatingTournamentTitle: 'Создание турнира',
+    creatingTournamentMessage: 'Идет создание турнира. Пожалуйста, подождите...',
+    creatingTournamentError: 'Ошибка при создании турнира',
+    creatingTournamentErrorDetails: 'Не удалось создать турнир. Попробуйте еще раз.',
+    closeButton: 'Закрыть',
+    
+    // Tournament View
+    tournamentNotFound: 'Турнир не найден',
+    tournamentNotFoundMessage: 'Турнир с указанным ID не существует.',
+    backToTournaments: 'Вернуться к списку турниров',
   },
   lv: {
     // Header
@@ -186,6 +221,41 @@ export const translations = {
     menuClearDatabase: 'Notīrīt datu bāzi',
     clearDatabaseConfirm: 'Šī darbība dzēsīs visas komandas un spēles. Turpināt?',
     clearDatabaseEmpty: 'Datu bāze jau ir tukša.',
+    functionInDevelopment: 'Funkcija izstrādē',
+    
+    // Tournament List
+    tournamentsListTitle: 'Turnīru saraksts',
+    createTournamentButton: 'Izveidot turnīru',
+    noTournaments: 'Turnīri nav atrasti',
+    loadingTournaments: 'Turnīru ielāde...',
+    teams: 'Komandas',
+    descriptionLabel: 'Apraksts',
+    showMore: 'Rādīt vairāk',
+    showLess: 'Rādīt mazāk',
+    
+    // Create Tournament
+    createTournamentTitle: 'Izveidot turnīru',
+    tournamentName: 'Turnīra nosaukums',
+    tournamentNamePlaceholder: 'Ievadiet turnīra nosaukumu',
+    tournamentNameRequired: 'Turnīra nosaukums ir obligāts',
+    startDate: 'Sākuma datums',
+    endDate: 'Beigu datums',
+    description: 'Apraksts',
+    descriptionPlaceholder: 'Ievadiet turnīra aprakstu (nav obligāts)',
+    createButton: 'Izveidot',
+    cancelButton: 'Atcelt',
+    
+    // Creating Tournament Modal
+    creatingTournamentTitle: 'Turnīra izveide',
+    creatingTournamentMessage: 'Notiek turnīra izveide. Lūdzu, uzgaidiet...',
+    creatingTournamentError: 'Kļūda, izveidojot turnīru',
+    creatingTournamentErrorDetails: 'Neizdevās izveidot turnīru. Mēģiniet vēlreiz.',
+    closeButton: 'Aizvērt',
+    
+    // Tournament View
+    tournamentNotFound: 'Turnīrs nav atrasts',
+    tournamentNotFoundMessage: 'Turnīrs ar norādīto ID neeksistē.',
+    backToTournaments: 'Atgriezties pie turnīru saraksta',
   }
 }
 
