@@ -47,7 +47,7 @@ jobs:
           // Set to false for production mode (uses production spreadsheet)
           export const IS_DEV_MODE = false
           // Development Google Sheets Configuration
-          export const DEV_SPREADSHEET_ID = '155dQ0YN-WUNGcxRr_IxcJkN_v2gphA0s6c4uR1nExkg'
+          export const DEV_SPREADSHEET_ID = '1ZY-Q8q59xT_s6LRsn8kUq7xywhFukD2sy7uVXznHSD8'
           export const DEV_GOOGLE_APPS_SCRIPT_ID = 'AKfycbx0DFvjp9TN7IvAWU7O51N8nCkbf1LIeB3ayKr9753AK57Yu3fs4Qy34HGb__N_klwN5Q'
 
           // Production Google Sheets Configuration
