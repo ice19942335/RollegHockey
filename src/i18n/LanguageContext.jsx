@@ -13,9 +13,9 @@ export const useLanguage = () => {
 
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
-    // Загружаем сохраненный язык из localStorage или используем русский по умолчанию
+    // Загружаем сохраненный язык из localStorage или используем латышский по умолчанию
     const savedLanguage = localStorage.getItem('appLanguage')
-    return savedLanguage && translations[savedLanguage] ? savedLanguage : 'ru'
+    return savedLanguage && translations[savedLanguage] ? savedLanguage : 'lv'
   })
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export const LanguageProvider = ({ children }) => {
   }, [language])
 
   const t = (key, params = {}) => {
-    const translation = translations[language]?.[key] || translations.ru[key] || key
+    const translation = translations[language]?.[key] || translations.lv[key] || translations.ru[key] || key
     
     // Заменяем параметры в строке
     if (params && Object.keys(params).length > 0) {

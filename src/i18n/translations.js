@@ -148,7 +148,8 @@ export const translations = {
     deletingTournamentMessage: 'Идет удаление турнира. Пожалуйста, подождите...',
     
     // Tournament Round Generator
-    tournamentRoundGenerator: 'Генератор туров',
+    tournamentRoundGenerator: 'Генератор игр',
+    roundRobinType: 'Все против всех',
     selectNumber: 'Количество туров',
     selectTeamToAdd: 'Выберите команду',
     generate: 'Сгенерировать',
@@ -320,7 +321,8 @@ export const translations = {
     deletingTournamentMessage: 'Notiek turnīra dzēšana. Lūdzu, uzgaidiet...',
     
     // Tournament Round Generator
-    tournamentRoundGenerator: 'Turnīru ģenerators',
+    tournamentRoundGenerator: 'Spēļu ģenerators',
+    roundRobinType: 'Visi pret visiem',
     selectNumber: 'Tūru skaits',
     selectTeamToAdd: 'Izvēlieties komandu',
     generate: 'Ģenerēt',

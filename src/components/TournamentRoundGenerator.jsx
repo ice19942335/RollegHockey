@@ -120,6 +120,19 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
     <div className="tournament-round-generator">
       <h2>{t('tournamentRoundGenerator')}</h2>
       
+      {/* Переключатель типа генерации */}
+      <div className="round-generator-type-toggle">
+        <label className="round-generator-type-label">
+          <input
+            type="checkbox"
+            checked={true}
+            readOnly
+            className="round-generator-type-checkbox"
+          />
+          <span className="round-generator-type-text">{t('roundRobinType')}</span>
+        </label>
+      </div>
+      
       <div className="round-generator-controls">
         <select
           className="round-generator-team-select"

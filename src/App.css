@@ -3919,6 +3919,39 @@
   gap: 1.5rem;
 }
 
+.round-generator-type-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  background: #f5f5f5;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.round-generator-type-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
+.round-generator-type-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #FFA000;
+  pointer-events: none;
+}
+
+.round-generator-type-text {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
 .round-generator-controls {
   display: flex;
   align-items: stretch;
