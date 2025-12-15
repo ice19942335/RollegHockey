@@ -11,6 +11,7 @@ export const translations = {
     addTeam: 'Добавить команду',
     generateTeams: 'Сгенерировать команды',
     selectTeamCount: 'Количество команд',
+    or: 'или',
     addTeamSection: 'Добавить команду',
     teamsList: 'Команды',
     clickToEdit: 'Кликните для редактирования',
@@ -56,7 +57,7 @@ export const translations = {
     scoringLoss: 'Поражение - 0 очков',
     
     // Games List
-    gamesTitle: 'Игры',
+    gamesTitle: 'Результаты игр',
     deleteAllGames: '🗑️ Удалить все игры',
     
     // Scoreboard
@@ -183,6 +184,7 @@ export const translations = {
     addTeamSection: 'Pievienot komandu',
     generateTeams: 'Ģenerēt komandas',
     selectTeamCount: 'Komandu skaits',
+    or: 'vai',
     teamsList: 'Komandas',
     clickToEdit: 'Noklikšķiniet, lai rediģētu',
     
@@ -227,7 +229,7 @@ export const translations = {
     scoringLoss: 'Zaudējums - 0 punkti',
     
     // Games List
-    gamesTitle: 'Spēles',
+    gamesTitle: 'Spēļu rezultāti',
     deleteAllGames: '🗑️ Dzēst visas spēles',
     
     // Scoreboard

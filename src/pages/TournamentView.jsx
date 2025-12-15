@@ -573,17 +573,35 @@ function TournamentView() {
     
     setIsSaving(true) // Блокируем приложение
     try {
-      // Загружаем свежие данные
+      // Сначала находим игру в локальном состоянии, чтобы сохранить актуальный счет
+      const localGame = games.find(g => g.id === gameId)
+      if (!localGame) {
+        console.error('Игра не найдена в локальном состоянии')
+        setIsSaving(false)
+        return
+      }
+      
+      // Загружаем свежие данные для синхронизации
       const freshData = await loadData(false)
       const currentGames = freshData.games.length > 0 ? freshData.games : games
       
-      // Находим игру и меняем флаг pending на false
+      // Находим игру и обновляем ее, используя актуальные данные из локального состояния
+      // Это гарантирует, что счет будет сохранен правильно
       const updatedGames = currentGames.map(game => {
         if (game.id === gameId) {
-          return { ...game, pending: false }
+          // Используем данные из локального состояния (актуальный счет)
+          return { 
+            ...localGame, 
+            pending: false 
+          }
         }
         return game
       })
+      
+      // Если игры нет в freshData, добавляем ее из локального состояния
+      if (!currentGames.find(g => g.id === gameId)) {
+        updatedGames.push({ ...localGame, pending: false })
+      }
       
       // Обновляем состояние
       setGames(updatedGames)
@@ -911,6 +929,12 @@ function TournamentView() {
             )}
           </section>
         )}
+
+        {/* Фильтруем только активные игры (не pending) для турнирной таблицы */}
+        {(() => {
+          const activeGames = games.filter(g => !g.pending || g.pending === false)
+          return <StandingsTable teams={teams} games={activeGames} />
+        })()}
         
         <section className="section">
           <h2>{t('addTeamSection')}</h2>
@@ -964,12 +988,6 @@ function TournamentView() {
           </section>
         )}
 
-        {/* Фильтруем только активные игры (не pending) для турнирной таблицы */}
-        {(() => {
-          const activeGames = games.filter(g => !g.pending || g.pending === false)
-          return <StandingsTable teams={teams} games={activeGames} />
-        })()}
-
         {/* Секция для pending games */}
         {(() => {
           const pendingGames = games.filter(g => g.pending === true)
@@ -978,7 +996,7 @@ function TournamentView() {
           return (
             <section className="section">
               <div className="pending-games-header">
-                <h2>{t('pendingGames')}</h2>
+                <h2>{t('pendingGames')} ({pendingGames.length})</h2>
                 {pendingGames.length > 0 && (
                   <button
                     className="btn-delete-all-pending-games"

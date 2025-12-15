@@ -87,74 +87,87 @@ function TeamForm({
 
   return (
     <form className="team-form" onSubmit={handleSubmit}>
-      <div className="team-generator-controls">
-        <select
-          className="team-generator-select"
-          value={selectedCount}
-          onChange={(e) => setSelectedCount(e.target.value)}
-        >
-          <option value="">{t('selectTeamCount')}</option>
-          {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
-            <option key={num} value={num}>
-              {num}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="team-generator-btn"
-          onClick={handleGenerateTeams}
-          disabled={!selectedCount}
-        >
-          {t('generateTeams')}
+      {/* Автоматическая генерация команд */}
+      <div className="team-form-section team-form-section-generate">
+        <h3 className="team-form-section-title">{t('generateTeams')}</h3>
+        <div className="team-generator-controls">
+          <select
+            className="team-generator-select"
+            value={selectedCount}
+            onChange={(e) => setSelectedCount(e.target.value)}
+          >
+            <option value="">{t('selectTeamCount')}</option>
+            {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+              <option key={num} value={num}>
+                {num}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="team-generator-btn"
+            onClick={handleGenerateTeams}
+            disabled={!selectedCount}
+          >
+            {t('generateTeams')}
+          </button>
+        </div>
+      </div>
+
+      {/* Разделитель */}
+      <div className="team-form-divider">
+        <span className="team-form-divider-text">{t('or') || 'или'}</span>
+      </div>
+
+      {/* Ручной ввод команды */}
+      <div className="team-form-section team-form-section-manual">
+        <h3 className="team-form-section-title">{t('addTeam')}</h3>
+        <input
+          type="text"
+          value={newTeamName}
+          onChange={(e) => setNewTeamName(e.target.value)}
+          placeholder={t('teamNamePlaceholder')}
+          required
+        />
+        
+        <div className="logo-selection">
+          <label>{t('selectLogo')}</label>
+          <div className="logo-options">
+            {DEFAULT_TEAM_LOGOS.map(logo => (
+              <button
+                key={logo.id}
+                type="button"
+                className={`logo-option ${newTeamLogo === logo.emoji ? 'selected' : ''}`}
+                onClick={logoHandlers[logo.id]}
+                title={logo.name}
+              >
+                {logo.emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="color-selection">
+          <label>{t('selectColor')}</label>
+          <div className="color-options">
+            {TEAM_COLORS.map(color => (
+              <button
+                key={color.id}
+                type="button"
+                className={`color-option ${newTeamColor === color.value ? 'selected' : ''}`}
+                onClick={() => handleColorSelect(color.value)}
+                title={color.name}
+                style={colorStyles[color.id]}
+                data-color-value={color.value}
+              />
+            ))}
+          </div>
+        </div>
+
+        <button type="submit" className="btn-primary">
+          {t('addTeam')}
         </button>
       </div>
-
-      <input
-        type="text"
-        value={newTeamName}
-        onChange={(e) => setNewTeamName(e.target.value)}
-        placeholder={t('teamNamePlaceholder')}
-        required
-      />
-      
-      <div className="logo-selection">
-        <label>{t('selectLogo')}</label>
-        <div className="logo-options">
-          {DEFAULT_TEAM_LOGOS.map(logo => (
-            <button
-              key={logo.id}
-              type="button"
-              className={`logo-option ${newTeamLogo === logo.emoji ? 'selected' : ''}`}
-              onClick={logoHandlers[logo.id]}
-              title={logo.name}
-            >
-              {logo.emoji}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="color-selection">
-        <label>{t('selectColor')}</label>
-        <div className="color-options">
-          {TEAM_COLORS.map(color => (
-            <button
-              key={color.id}
-              type="button"
-              className={`color-option ${newTeamColor === color.value ? 'selected' : ''}`}
-              onClick={() => handleColorSelect(color.value)}
-              title={color.name}
-              style={colorStyles[color.id]}
-              data-color-value={color.value}
-            />
-          ))}
-        </div>
-      </div>
-
-      <button type="submit" className="btn-primary">
-        {t('addTeam')}
-      </button>
     </form>
   )
 }

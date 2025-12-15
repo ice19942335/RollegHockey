@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../i18n/LanguageContext'
 import NavItem from './NavItem'
 import { menuItems } from '../config/menuItems'
+import CreateTournamentModal from './CreateTournamentModal'
 
 function Navigation() {
   const navigate = useNavigate()
@@ -11,11 +12,12 @@ function Navigation() {
   const [isVertical, setIsVertical] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isCreateTournamentModalOpen, setIsCreateTournamentModalOpen] = useState(false)
   const dropdownRef = useRef(null)
   const containerRef = useRef(null)
 
   const menuHandlers = {
-    createTournament: () => navigate('/create'),
+    createTournament: () => setIsCreateTournamentModalOpen(true),
     tournamentsList: () => navigate('/'),
     playoffsList: () => {
       alert(t('functionInDevelopment'))
@@ -184,6 +186,10 @@ function Navigation() {
           ))}
         </div>
       </div>
+      <CreateTournamentModal 
+        isOpen={isCreateTournamentModalOpen} 
+        onClose={() => setIsCreateTournamentModalOpen(false)} 
+      />
     </nav>
   )
 }
