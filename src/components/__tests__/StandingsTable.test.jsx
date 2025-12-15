@@ -78,7 +78,7 @@ describe('StandingsTable', () => {
       <StandingsTable teams={mockTeams} games={mockGames} />
     )
     
-    const legend = screen.getByText(/Легенда|Legend/i)
+    const legend = screen.getByText(/Легенда|Legend|Leģenda/i)
     expect(legend).toBeInTheDocument()
   })
 

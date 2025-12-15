@@ -90,8 +90,12 @@ describe('Navigation', () => {
 
   it('should display current language flag', () => {
     renderWithProvider(<Navigation />)
-    // Default language is Russian, so Russian flag should be visible
-    expect(screen.getByText('🇷🇺')).toBeInTheDocument()
+    // Default language is Latvian, so Latvian flag should be visible
+    const flags = screen.getAllByText('🇱🇻')
+    expect(flags.length).toBeGreaterThan(0)
+    // Check that the flag is in the button (first occurrence)
+    const languageButton = screen.getByRole('button', { name: /Выбрать язык/i })
+    expect(languageButton).toContainElement(flags[0])
   })
 
   it('should open language dropdown when button is clicked', async () => {
@@ -101,7 +105,12 @@ describe('Navigation', () => {
     fireEvent.click(languageButton)
     
     await waitFor(() => {
-      expect(screen.getByText('🇱🇻')).toBeInTheDocument()
+      // After opening dropdown, there should be multiple flags (button + dropdown)
+      const flags = screen.getAllByText('🇱🇻')
+      expect(flags.length).toBeGreaterThanOrEqual(2)
+      // Check that Russian flag appears in dropdown
+      const ruFlags = screen.getAllByText('🇷🇺')
+      expect(ruFlags.length).toBeGreaterThan(0)
     })
   })
 
@@ -112,12 +121,16 @@ describe('Navigation', () => {
     fireEvent.click(languageButton)
     
     await waitFor(() => {
-      const lvButton = screen.getByRole('button', { name: /Latviešu/i })
-      fireEvent.click(lvButton)
+      const ruButton = screen.getByRole('button', { name: /Русский/i })
+      fireEvent.click(ruButton)
     })
     
     await waitFor(() => {
-      expect(screen.getByText('🇱🇻')).toBeInTheDocument()
+      // After switching to Russian, Russian flag should be in the button
+      const flags = screen.getAllByText('🇷🇺')
+      expect(flags.length).toBeGreaterThan(0)
+      const button = screen.getByRole('button', { name: /Выбрать язык/i })
+      expect(button).toContainElement(flags[0])
     })
   })
 
@@ -128,7 +141,9 @@ describe('Navigation', () => {
     fireEvent.click(languageButton)
     
     await waitFor(() => {
-      expect(screen.getByText('🇱🇻')).toBeInTheDocument()
+      // Check that dropdown is open by looking for Russian flag in dropdown
+      const ruFlags = screen.getAllByText('🇷🇺')
+      expect(ruFlags.length).toBeGreaterThan(0)
     })
     
     // Click outside
