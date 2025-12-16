@@ -1907,8 +1907,15 @@
   font-weight: 600;
 }
 
-.legend {
+.legend-container {
   margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.legend,
+.scoring-system {
   padding: 1rem;
   background: #f5f7fa;
   border-radius: 10px;
@@ -1917,19 +1924,35 @@
   color: #555;
 }
 
-.legend p {
+.legend p,
+.scoring-system p {
   margin: 0.5rem 0;
 }
 
-.legend ul {
+.legend ul,
+.scoring-system ul {
   margin: 0.5rem 0;
   padding-left: 1.5rem;
   list-style-type: disc;
 }
 
-.legend li {
+.legend li,
+.scoring-system li {
   margin: 0.25rem 0;
   line-height: 1.5;
+}
+
+/* Horizontal layout on larger screens */
+@media (min-width: 576px) {
+  .legend-container {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+
+  .legend,
+  .scoring-system {
+    flex: 1;
+  }
 }
 
 .games-list {
@@ -2523,12 +2546,18 @@
     height: 28px;
   }
 
-  .legend {
+  .legend-container {
+    gap: 0.75rem;
+  }
+
+  .legend,
+  .scoring-system {
     font-size: 0.75rem;
     padding: 0.75rem;
   }
 
-  .legend p {
+  .legend p,
+  .scoring-system p {
     margin: 0.25rem 0;
   }
 

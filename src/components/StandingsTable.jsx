@@ -20,6 +20,7 @@ function StandingsTable({ teams, games }) {
             <tr>
               <th></th>
               <th>{t('teamColumn')}</th>
+              <th>{t('pointsColumn')}</th>
               <th>{t('gamesColumn')}</th>
               <th>{t('winsRegularColumn')}</th>
               <th>{t('winsShootoutColumn')}</th>
@@ -29,7 +30,6 @@ function StandingsTable({ teams, games }) {
               <th>{t('goalsForColumn')}</th>
               <th>{t('goalsAgainstColumn')}</th>
               <th>{t('goalDiffColumn')}</th>
-              <th>{t('pointsColumn')}</th>
             </tr>
           </thead>
           <tbody>
@@ -46,6 +46,7 @@ function StandingsTable({ teams, games }) {
                   </span>
                   {team.name}
                 </td>
+                <td className="points">{team.points}</td>
                 <td>{team.gamesPlayed}</td>
                 <td>{team.wins}</td>
                 <td>{team.winsOT}</td>
@@ -57,34 +58,37 @@ function StandingsTable({ teams, games }) {
                 <td className={team.goalDifference >= 0 ? 'positive' : 'negative'}>
                   {team.goalDifference > 0 ? '+' : ''}{team.goalDifference}
                 </td>
-                <td className="points">{team.points}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="legend">
-        <p><strong>{t('legend')}</strong></p>
-        <ul>
-          <li>{t('legendGames')}</li>
-          <li>{t('legendWinsRegular')}</li>
-          <li>{t('legendWinsShootout')}</li>
-          <li>{t('legendLossesRegular')}</li>
-          <li>{t('legendLossesShootout')}</li>
-          <li>{t('legendDraws')}</li>
-          <li>{t('legendGoalsFor')}</li>
-          <li>{t('legendGoalsAgainst')}</li>
-          <li>{t('legendGoalDiff')}</li>
-          <li>{t('legendPoints')}</li>
-        </ul>
-        <p><strong>{t('scoringSystem')}</strong></p>
-        <ul>
-          <li>{t('scoringWinRegular')}</li>
-          <li>{t('scoringWinShootout')}</li>
-          <li>{t('scoringDrawRegular')}</li>
-          <li>{t('scoringDrawShootout')}</li>
-          <li>{t('scoringLoss')}</li>
-        </ul>
+      <div className="legend-container">
+        <div className="legend">
+          <p><strong>{t('legend')}</strong></p>
+          <ul>
+            <li>{t('legendPoints')}</li>
+            <li>{t('legendGames')}</li>
+            <li>{t('legendWinsRegular')}</li>
+            <li>{t('legendWinsShootout')}</li>
+            <li>{t('legendLossesRegular')}</li>
+            <li>{t('legendLossesShootout')}</li>
+            <li>{t('legendDraws')}</li>
+            <li>{t('legendGoalsFor')}</li>
+            <li>{t('legendGoalsAgainst')}</li>
+            <li>{t('legendGoalDiff')}</li>
+          </ul>
+        </div>
+        <div className="scoring-system">
+          <p><strong>{t('scoringSystem')}</strong></p>
+          <ul>
+            <li>{t('scoringWinRegular')}</li>
+            <li>{t('scoringWinShootout')}</li>
+            <li>{t('scoringDrawRegular')}</li>
+            <li>{t('scoringDrawShootout')}</li>
+            <li>{t('scoringLoss')}</li>
+          </ul>
+        </div>
       </div>
     </section>
   )
