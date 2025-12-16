@@ -28,7 +28,7 @@ function GamesList({ games, teams, onDeleteGame, onDeleteAllGames, isDeletingAll
   const sortedRounds = Array.from(gamesByRound.keys()).sort((a, b) => a - b)
 
   return (
-    <section className="section">
+    <section className="section games-list-section">
       <div className="games-list-header">
         <h2>{t('gamesTitle')} ({games.length})</h2>
         <button 
@@ -48,9 +48,9 @@ function GamesList({ games, teams, onDeleteGame, onDeleteAllGames, isDeletingAll
             </div>
             <div className="games-round-list">
               {gamesByRound.get(round).map(game => {
-                const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
-                const awayTeam = teams.find(t => String(t.id) === String(game.awayTeamId))
-
+          const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
+          const awayTeam = teams.find(t => String(t.id) === String(game.awayTeamId))
+          
                 return (
                   <GameCard
                     key={game.id}
@@ -74,17 +74,17 @@ function GamesList({ games, teams, onDeleteGame, onDeleteAllGames, isDeletingAll
               {gamesWithoutRound.map(game => {
                 const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
                 const awayTeam = teams.find(t => String(t.id) === String(game.awayTeamId))
-
-                return (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    homeTeam={homeTeam}
-                    awayTeam={awayTeam}
-                    onDelete={onDeleteGame}
-                  />
-                )
-              })}
+          
+          return (
+            <GameCard
+              key={game.id}
+              game={game}
+              homeTeam={homeTeam}
+              awayTeam={awayTeam}
+              onDelete={onDeleteGame}
+            />
+          )
+        })}
             </div>
           </div>
         )}

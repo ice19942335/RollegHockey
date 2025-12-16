@@ -29,6 +29,8 @@ export const translations = {
     
     // Standings Table
     standingsTitle: 'Турнирная таблица',
+    exportStandingsPdf: 'Экспорт PDF',
+    exportStandingsPdfTitle: 'Экспортировать таблицу в PDF',
     teamColumn: 'Команда',
     gamesColumn: 'И',
     winsRegularColumn: 'ПО',
@@ -214,6 +216,8 @@ export const translations = {
     
     // Standings Table
     standingsTitle: 'Turnīra tabula',
+    exportStandingsPdf: 'Eksports PDF',
+    exportStandingsPdfTitle: 'Eksportēt tabulu PDF',
     teamColumn: 'Komanda',
     gamesColumn: 'S',
     winsRegularColumn: 'UO',

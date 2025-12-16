@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { calculateStandings } from '../utils/calculateStats'
 import TeamLogo from './TeamLogo'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -7,15 +7,79 @@ function StandingsTable({ teams, games }) {
   const { t } = useLanguage()
   const [isLegendExpanded, setIsLegendExpanded] = useState(false)
   const [isScoringSystemExpanded, setIsScoringSystemExpanded] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const standings = useMemo(() => {
     return calculateStandings(teams, games)
   }, [teams, games])
 
   if (standings.length === 0) return null
 
+  const handleExportPdf = async () => {
+    const exportRoot = document.querySelector('.pdf-export-root')
+    if (!exportRoot) return
+    setIsExportingPdf(true)
+    try {
+      document.body.classList.add('pdf-exporting')
+      const [{ default: html2canvas }, jspdfModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ])
+
+      const jsPDF = jspdfModule.jsPDF || jspdfModule.default
+      const canvas = await html2canvas(exportRoot, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 24
+
+      const imgWidth = pageWidth - margin * 2
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      let y = margin
+      let remaining = imgHeight
+
+      // Рисуем одним большим изображением с переносом по страницам
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight)
+        remaining -= (pageHeight - margin * 2)
+        if (remaining > 0) {
+          pdf.addPage()
+          y = margin - (imgHeight - remaining)
+        }
+      }
+
+      const dateStr = new Date().toISOString().slice(0, 10)
+      pdf.save(`standings-${dateStr}.pdf`)
+    } catch (e) {
+      console.error('PDF export failed:', e)
+    } finally {
+      document.body.classList.remove('pdf-exporting')
+      setIsExportingPdf(false)
+    }
+  }
+
   return (
     <section className="section standings-section">
+      <div className="standings-header">
       <h2>{t('standingsTitle')}</h2>
+        <button
+          type="button"
+          className={`btn-export-pdf ${isExportingPdf ? 'btn-loading' : ''}`}
+          onClick={handleExportPdf}
+          disabled={isExportingPdf}
+          title={t('exportStandingsPdfTitle')}
+        >
+          {isExportingPdf && <span className="btn-spinner"></span>}
+          {t('exportStandingsPdf')}
+        </button>
+      </div>
       <div className="standings-table-wrapper">
         <table className="standings-table">
           <thead>

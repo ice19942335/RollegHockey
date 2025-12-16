@@ -1955,6 +1955,40 @@
   max-width: 100%;
 }
 
+.standings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-export-pdf {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-export-pdf:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35);
+}
+
+.btn-export-pdf:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .standings-table-wrapper {
   overflow-x: auto;
   margin-bottom: 1rem;
@@ -1962,6 +1996,22 @@
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
   background: transparent;
+}
+
+/* PDF export: hide everything except standings + games history */
+body.pdf-exporting .btn-export-pdf {
+  display: none !important;
+}
+
+body.pdf-exporting .add-team-section,
+body.pdf-exporting .round-generator-section,
+body.pdf-exporting .add-game-section {
+  display: none !important;
+}
+
+/* Keep layout stable in export */
+body.pdf-exporting .pdf-export-root {
+  background: white;
 }
 
 .standings-table {
