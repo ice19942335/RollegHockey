@@ -3,11 +3,12 @@ import { calculateStandings } from '../utils/calculateStats'
 import TeamLogo from './TeamLogo'
 import { useLanguage } from '../i18n/LanguageContext'
 
-function StandingsTable({ teams, games }) {
+function StandingsTable({ teams, games, tournamentName }) {
   const { t } = useLanguage()
   const [isLegendExpanded, setIsLegendExpanded] = useState(false)
   const [isScoringSystemExpanded, setIsScoringSystemExpanded] = useState(false)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
+  const exportCounterRef = useRef(0)
   const standings = useMemo(() => {
     return calculateStandings(teams, games)
   }, [teams, games])
@@ -19,6 +20,11 @@ function StandingsTable({ teams, games }) {
     if (!exportRoot) return
     setIsExportingPdf(true)
     try {
+      // Даем React/браузеру отрисовать спиннер перед тяжёлой работой
+      await new Promise(resolve =>
+        (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(resolve) : setTimeout(resolve, 0))
+      )
+
       document.body.classList.add('pdf-exporting')
       const [{ default: html2canvas }, jspdfModule] = await Promise.all([
         import('html2canvas'),
@@ -55,8 +61,24 @@ function StandingsTable({ teams, games }) {
         }
       }
 
-      const dateStr = new Date().toISOString().slice(0, 10)
-      pdf.save(`standings-${dateStr}.pdf`)
+      exportCounterRef.current += 1
+      const exportNumber = exportCounterRef.current
+
+      const uniqueId =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+
+      const safeTournamentName = (tournamentName || 'tournament')
+        .toString()
+        .normalize('NFKD')
+        .replace(/[\\\/:*?"<>|]+/g, '')
+        .replace(/\s+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 60) || 'tournament'
+
+      pdf.save(`${safeTournamentName}_${exportNumber}_${uniqueId}.pdf`)
     } catch (e) {
       console.error('PDF export failed:', e)
     } finally {
@@ -68,7 +90,7 @@ function StandingsTable({ teams, games }) {
   return (
     <section className="section standings-section">
       <div className="standings-header">
-      <h2>{t('standingsTitle')}</h2>
+        <h2>{t('standingsTitle')}</h2>
         <button
           type="button"
           className={`btn-export-pdf ${isExportingPdf ? 'btn-loading' : ''}`}

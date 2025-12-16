@@ -1227,7 +1227,7 @@ function TournamentView() {
         {(() => {
           const pendingGames = games.filter(g => g.pending === true)
           if (pendingGames.length === 0) return null
-          
+
           const pendingGamesByRound = new Map()
           const pendingGamesWithoutRound = []
 
@@ -1251,101 +1251,101 @@ function TournamentView() {
           const sortedPendingRounds = Array.from(pendingGamesByRound.keys()).sort((a, b) => a - b)
 
           const renderPendingGame = (game) => {
-                  const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
-                  const awayTeam = teams.find(t => String(t.id) === String(game.awayTeamId))
+            const homeTeam = teams.find(t => String(t.id) === String(game.homeTeamId))
+            const awayTeam = teams.find(t => String(t.id) === String(game.awayTeamId))
             const round =
               game?.round === null || game?.round === undefined || game?.round === ''
                 ? null
                 : parseInt(game.round, 10) || null
-                  
-                  if (!homeTeam || !awayTeam) return null
-                  
-                  return (
-                    <div key={game.id} className="pending-game-item">
-                      <div className="pending-game-info">
-                        <div className="pending-game-main">
-                          <div className="pending-game-teams-wrapper">
+            
+            if (!homeTeam || !awayTeam) return null
+            
+            return (
+              <div key={game.id} className="pending-game-item">
+                <div className="pending-game-info">
+                  <div className="pending-game-main">
+                    <div className="pending-game-teams-wrapper">
                       {round && (
                         <span className="pending-game-round">
                           {t('roundGroupTitle', { round })}
                         </span>
                       )}
-                            <span className="pending-game-teams">
-                              {homeTeam.name} vs {awayTeam.name}
-                            </span>
-                            {game.gameType === 'shootout' && (
-                              <span className="pending-game-type">({t('gameTypeShootout')})</span>
-                            )}
-                          </div>
-                          <div className="pending-game-score-controls">
-                            <div className="score-control-group">
-                              <button
-                                className="btn-score-decrease"
-                                onClick={() => handleUpdatePendingGameScore(game.id, 'home', -1)}
-                                title={t('decreaseScore')}
-                              >
-                                −
-                              </button>
-                              <button
-                                className="btn-score-increase"
-                                onClick={() => handleUpdatePendingGameScore(game.id, 'home', 1)}
-                                title={t('increaseScore')}
-                              >
-                                +
-                              </button>
-                              <span className="pending-game-score">
-                                {game.homeScore || 0}
-                              </span>
-                            </div>
-                            <span className="score-separator">:</span>
-                            <div className="score-control-group">
-                            <span className="pending-game-score">
-                                {game.awayScore || 0}
-                              </span>
-                              <button
-                                className="btn-score-decrease"
-                                onClick={() => handleUpdatePendingGameScore(game.id, 'away', -1)}
-                                title={t('decreaseScore')}
-                              >
-                                −
-                              </button>
-                              <button
-                                className="btn-score-increase"
-                                onClick={() => handleUpdatePendingGameScore(game.id, 'away', 1)}
-                                title={t('increaseScore')}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                      <span className="pending-game-teams">
+                        {homeTeam.name} vs {awayTeam.name}
+                      </span>
+                      {game.gameType === 'shootout' && (
+                        <span className="pending-game-type">({t('gameTypeShootout')})</span>
+                      )}
+                    </div>
+                    <div className="pending-game-score-controls">
+                      <div className="score-control-group">
+                        <button
+                          className="btn-score-decrease"
+                          onClick={() => handleUpdatePendingGameScore(game.id, 'home', -1)}
+                          title={t('decreaseScore')}
+                        >
+                          −
+                        </button>
+                        <button
+                          className="btn-score-increase"
+                          onClick={() => handleUpdatePendingGameScore(game.id, 'home', 1)}
+                          title={t('increaseScore')}
+                        >
+                          +
+                        </button>
+                        <span className="pending-game-score">
+                          {game.homeScore || 0}
+                        </span>
                       </div>
-                      <div className="pending-game-actions">
+                      <span className="score-separator">:</span>
+                      <div className="score-control-group">
+                      <span className="pending-game-score">
+                          {game.awayScore || 0}
+                        </span>
                         <button
-                          className="btn-primary open-scoreboard-btn"
-                          onClick={() => openPendingGameScoreboard(game)}
-                          title={t('openScoreboard')}
+                          className="btn-score-decrease"
+                          onClick={() => handleUpdatePendingGameScore(game.id, 'away', -1)}
+                          title={t('decreaseScore')}
                         >
-                          {t('openScoreboard')}
+                          −
                         </button>
                         <button
-                          className="btn-primary approve-game-btn"
-                          onClick={() => handleApproveGameClick(game)}
+                          className="btn-score-increase"
+                          onClick={() => handleUpdatePendingGameScore(game.id, 'away', 1)}
+                          title={t('increaseScore')}
                         >
-                          {t('approveGame')}
-                        </button>
-                        <button
-                          className={`btn-delete-pending-game ${isDeletingPendingGame[game.id] ? 'btn-loading' : ''}`}
-                          onClick={() => handleDeletePendingGameClick(game)}
-                          title={t('deletePendingGame')}
-                          disabled={isDeletingPendingGame[game.id]}
-                        >
-                          {isDeletingPendingGame[game.id] && <span className="btn-spinner"></span>}
-                          🗑️
+                          +
                         </button>
                       </div>
                     </div>
-                  )
+                  </div>
+                </div>
+                <div className="pending-game-actions">
+                  <button
+                    className="btn-primary open-scoreboard-btn"
+                    onClick={() => openPendingGameScoreboard(game)}
+                    title={t('openScoreboard')}
+                  >
+                    {t('openScoreboard')}
+                  </button>
+                  <button
+                    className="btn-primary approve-game-btn"
+                    onClick={() => handleApproveGameClick(game)}
+                  >
+                    {t('approveGame')}
+                  </button>
+                  <button
+                    className={`btn-delete-pending-game ${isDeletingPendingGame[game.id] ? 'btn-loading' : ''}`}
+                    onClick={() => handleDeletePendingGameClick(game)}
+                    title={t('deletePendingGame')}
+                    disabled={isDeletingPendingGame[game.id]}
+                  >
+                    {isDeletingPendingGame[game.id] && <span className="btn-spinner"></span>}
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            )
           }
           
           return (

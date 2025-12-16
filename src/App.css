@@ -1964,12 +1964,12 @@
 }
 
 .btn-export-pdf {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  color: white;
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+  color: #333;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
@@ -1979,9 +1979,8 @@
 }
 
 .btn-export-pdf:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
 }
 
 .btn-export-pdf:disabled {
