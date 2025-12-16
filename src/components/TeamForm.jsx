@@ -14,7 +14,9 @@ function TeamForm({
   onGenerateTeams,
   existingTeams = [],
   language = 'ru',
-  onGeneratingStart
+  onGeneratingStart,
+  isAddingTeam = false,
+  isGeneratingTeams = false
 }) {
   const { t } = useLanguage()
   const [selectedCount, setSelectedCount] = useState('')
@@ -52,37 +54,29 @@ function TeamForm({
 
   const handleGenerateTeams = useCallback(() => {
     if (!selectedCount || parseInt(selectedCount) < 1) {
-      console.warn('Количество команд не выбрано')
       return
     }
 
-    // Блокируем приложение СРАЗУ при нажатии кнопки, до начала генерации
+    // Устанавливаем состояние загрузки СРАЗУ при нажатии кнопки
     if (onGeneratingStart) {
       onGeneratingStart()
     }
 
-    // Используем setTimeout с небольшой задержкой, чтобы React успел обновить UI и показать блокировку
+    // Используем setTimeout с небольшой задержкой, чтобы React успел обновить UI
     setTimeout(() => {
       const count = parseInt(selectedCount)
-      console.log('Генерация команд:', { count, language, existingTeamsCount: existingTeams.length })
-      
       const generatedTeams = generateRandomTeams(count, language, existingTeams)
-      console.log('Сгенерированные команды:', generatedTeams)
       
       if (generatedTeams.length > 0 && onGenerateTeams) {
         onGenerateTeams(generatedTeams)
         setSelectedCount('')
       } else {
-        console.warn('Не удалось сгенерировать команды или отсутствует обработчик', {
-          generatedTeamsLength: generatedTeams.length,
-          hasOnGenerateTeams: !!onGenerateTeams
-        })
         // Если генерация не удалась, нужно снять блокировку
         if (onGenerateTeams) {
           onGenerateTeams([])
         }
       }
-    }, 50) // Небольшая задержка для отображения блокировки
+    }, 50)
   }, [selectedCount, language, existingTeams, onGenerateTeams, onGeneratingStart])
 
   return (
@@ -105,10 +99,11 @@ function TeamForm({
           </select>
           <button
             type="button"
-            className="team-generator-btn"
+            className={`team-generator-btn ${isGeneratingTeams ? 'btn-loading' : ''}`}
             onClick={handleGenerateTeams}
-            disabled={!selectedCount}
+            disabled={!selectedCount || isGeneratingTeams}
           >
+            {isGeneratingTeams && <span className="btn-spinner btn-spinner-dark"></span>}
             {t('generateTeams')}
           </button>
         </div>
@@ -164,7 +159,12 @@ function TeamForm({
           </div>
         </div>
 
-        <button type="submit" className="btn-primary">
+        <button 
+          type="submit" 
+          className={`btn-primary ${isAddingTeam ? 'btn-loading' : ''}`}
+          disabled={isAddingTeam}
+        >
+          {isAddingTeam && <span className="btn-spinner btn-spinner-dark"></span>}
           {t('addTeam')}
         </button>
       </div>

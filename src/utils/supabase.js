@@ -242,6 +242,152 @@ export async function createTournament(tournamentData) {
  * @param {string} tournamentId - ID турнира для удаления
  * @returns {Promise<{success: boolean, error: string|null}>}
  */
+/**
+ * Получает статистику всех данных в базе
+ * @returns {Promise<{tournaments: number, teams: number, games: number}>}
+ */
+export async function getDatabaseStats() {
+  try {
+    const supabase = getSupabaseClient()
+
+    const [tournamentsResult, teamsResult, gamesResult] = await Promise.all([
+      supabase.from('rolleg_tournaments').select('id', { count: 'exact', head: true }),
+      supabase.from('rolleg_teams').select('id', { count: 'exact', head: true }),
+      supabase.from('rolleg_games').select('id', { count: 'exact', head: true })
+    ])
+
+    return {
+      tournaments: tournamentsResult.count || 0,
+      teams: teamsResult.count || 0,
+      games: gamesResult.count || 0
+    }
+  } catch (error) {
+    console.error('Ошибка получения статистики базы данных:', error)
+    return { tournaments: 0, teams: 0, games: 0 }
+  }
+}
+
+/**
+ * Удаляет все данные из базы данных
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function clearAllDatabase() {
+  try {
+    const supabase = getSupabaseClient()
+
+    // Загружаем все ID для удаления
+    // Сначала получаем все игры
+    const { data: allGames, error: gamesSelectError } = await supabase
+      .from('rolleg_games')
+      .select('id')
+
+    if (gamesSelectError) {
+      console.error('Ошибка загрузки игр:', gamesSelectError)
+      return {
+        success: false,
+        error: gamesSelectError.message || 'Ошибка при загрузке игр'
+      }
+    }
+
+    // Удаляем все игры
+    if (allGames && allGames.length > 0) {
+      const gameIds = allGames.map(g => g.id)
+      // Удаляем батчами по 100 записей
+      for (let i = 0; i < gameIds.length; i += 100) {
+        const batch = gameIds.slice(i, i + 100)
+        const { error: gamesError } = await supabase
+          .from('rolleg_games')
+          .delete()
+          .in('id', batch)
+
+        if (gamesError) {
+          console.error('Ошибка удаления игр:', gamesError)
+          return {
+            success: false,
+            error: gamesError.message || 'Ошибка при удалении игр'
+          }
+        }
+      }
+    }
+
+    // Получаем все команды
+    const { data: allTeams, error: teamsSelectError } = await supabase
+      .from('rolleg_teams')
+      .select('id')
+
+    if (teamsSelectError) {
+      console.error('Ошибка загрузки команд:', teamsSelectError)
+      return {
+        success: false,
+        error: teamsSelectError.message || 'Ошибка при загрузке команд'
+      }
+    }
+
+    // Удаляем все команды
+    if (allTeams && allTeams.length > 0) {
+      const teamIds = allTeams.map(t => t.id)
+      // Удаляем батчами по 100 записей
+      for (let i = 0; i < teamIds.length; i += 100) {
+        const batch = teamIds.slice(i, i + 100)
+        const { error: teamsError } = await supabase
+          .from('rolleg_teams')
+          .delete()
+          .in('id', batch)
+
+        if (teamsError) {
+          console.error('Ошибка удаления команд:', teamsError)
+          return {
+            success: false,
+            error: teamsError.message || 'Ошибка при удалении команд'
+          }
+        }
+      }
+    }
+
+    // Получаем все турниры
+    const { data: allTournaments, error: tournamentsSelectError } = await supabase
+      .from('rolleg_tournaments')
+      .select('id')
+
+    if (tournamentsSelectError) {
+      console.error('Ошибка загрузки турниров:', tournamentsSelectError)
+      return {
+        success: false,
+        error: tournamentsSelectError.message || 'Ошибка при загрузке турниров'
+      }
+    }
+
+    // Удаляем все турниры
+    if (allTournaments && allTournaments.length > 0) {
+      const tournamentIds = allTournaments.map(t => t.id)
+      // Удаляем батчами по 100 записей
+      for (let i = 0; i < tournamentIds.length; i += 100) {
+        const batch = tournamentIds.slice(i, i + 100)
+        const { error: tournamentsError } = await supabase
+          .from('rolleg_tournaments')
+          .delete()
+          .in('id', batch)
+
+        if (tournamentsError) {
+          console.error('Ошибка удаления турниров:', tournamentsError)
+          return {
+            success: false,
+            error: tournamentsError.message || 'Ошибка при удалении турниров'
+          }
+        }
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Ошибка очистки базы данных:', error)
+    return {
+      success: false,
+      error: error.message || 'Ошибка при очистке базы данных'
+    }
+  }
+}
+
 export async function deleteTournament(tournamentId) {
   try {
     if (!tournamentId) {
@@ -258,9 +404,9 @@ export async function deleteTournament(tournamentId) {
 
     if (error) {
       console.error('Ошибка удаления турнира:', error)
-      return { 
-        success: false, 
-        error: error.message || 'Ошибка при удалении турнира' 
+      return {
+        success: false,
+        error: error.message || 'Ошибка при удалении турнира'
       }
     }
 

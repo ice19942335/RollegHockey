@@ -8,6 +8,10 @@ const SUPABASE_ANON_KEY = 'sb_publishable_TxQpmOg2Z74CQmP3X4f0Dw_THu35xlc'
 // Development mode flag (for displaying debug info like tournament IDs)
 export const IS_DEV_MODE = false
 
+// Admin mode flag - set to true to enable admin functions like "Clear Database"
+// You can set this via environment variable: VITE_ADMIN_ENABLED=true
+export const IS_ADMIN_ENABLED = import.meta.env.VITE_ADMIN_ENABLED === 'true' || false
+
 /**
  * Creates and returns a Supabase client instance
  * @returns {import('@supabase/supabase-js').SupabaseClient}

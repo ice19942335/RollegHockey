@@ -1,29 +1,61 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../i18n/LanguageContext'
+import { useAdmin } from '../contexts/AdminContext'
 import NavItem from './NavItem'
 import { menuItems } from '../config/menuItems'
 import CreateTournamentModal from './CreateTournamentModal'
+import ClearDatabaseModal from './ClearDatabaseModal'
+import Notification from './Notification'
+import { clearAllDatabase } from '../utils/supabase'
 
 function Navigation() {
   const navigate = useNavigate()
   const { t, language, changeLanguage } = useLanguage()
+  const { isAdminEnabled } = useAdmin()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isVertical, setIsVertical] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isCreateTournamentModalOpen, setIsCreateTournamentModalOpen] = useState(false)
+  const [isClearDatabaseModalOpen, setIsClearDatabaseModalOpen] = useState(false)
+  const [isClearingDatabase, setIsClearingDatabase] = useState(false)
+  const [notification, setNotification] = useState(null)
   const dropdownRef = useRef(null)
   const containerRef = useRef(null)
+
+  const showNotification = (message, type = 'error') => {
+    setNotification({ message, type })
+  }
+
+  const handleClearDatabase = async () => {
+    setIsClearDatabaseModalOpen(false)
+    setIsClearingDatabase(true)
+    try {
+      const result = await clearAllDatabase()
+      if (result.success) {
+        showNotification(t('clearDatabaseSuccess'), 'success')
+        // Перенаправляем на главную страницу после очистки
+        navigate('/')
+      } else {
+        showNotification(t('clearDatabaseError') + ': ' + (result.error || ''), 'error')
+      }
+    } catch (error) {
+      console.error('Ошибка при очистке базы данных:', error)
+      showNotification(t('clearDatabaseError'), 'error')
+    } finally {
+      setIsClearingDatabase(false)
+    }
+  }
 
   const menuHandlers = {
     createTournament: () => setIsCreateTournamentModalOpen(true),
     tournamentsList: () => navigate('/'),
     playoffsList: () => {
-      alert(t('functionInDevelopment'))
+      showNotification(t('functionInDevelopment'), 'error')
     },
     clearDatabase: () => {
-      alert(t('functionInDevelopment'))
+      setIsClearDatabaseModalOpen(true)
     }
   }
 
@@ -170,26 +202,45 @@ function Navigation() {
           </button>
         )}
         <div className={`nav-items-wrapper ${isVertical ? 'nav-items-vertical' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-          {menuItems.map(item => (
-            <NavItem
-              key={item.id}
-              onClick={(e) => {
-                menuHandlers[item.id](e)
-                if (isMobile) {
-                  setIsMobileMenuOpen(false)
-                }
-              }}
-              isDanger={item.isDanger}
-            >
-              {t(item.translationKey)}
-            </NavItem>
-          ))}
+          {menuItems.map(item => {
+            // Скрываем кнопку "Очистить БД" если администратор не включен
+            if (item.id === 'clearDatabase' && !isAdminEnabled) {
+              return null
+            }
+            
+            return (
+              <NavItem
+                key={item.id}
+                onClick={(e) => {
+                  menuHandlers[item.id](e)
+                  if (isMobile) {
+                    setIsMobileMenuOpen(false)
+                  }
+                }}
+                isDanger={item.isDanger}
+              >
+                {t(item.translationKey)}
+              </NavItem>
+            )
+          })}
         </div>
       </div>
       <CreateTournamentModal 
         isOpen={isCreateTournamentModalOpen} 
         onClose={() => setIsCreateTournamentModalOpen(false)} 
       />
+      <ClearDatabaseModal
+        isOpen={isClearDatabaseModalOpen}
+        onClose={() => setIsClearDatabaseModalOpen(false)}
+        onConfirm={handleClearDatabase}
+      />
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </nav>
   )
 }

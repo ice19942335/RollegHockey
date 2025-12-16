@@ -1,10 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { calculateStandings } from '../utils/calculateStats'
 import TeamLogo from './TeamLogo'
 import { useLanguage } from '../i18n/LanguageContext'
 
 function StandingsTable({ teams, games }) {
   const { t } = useLanguage()
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false)
+  const [isScoringSystemExpanded, setIsScoringSystemExpanded] = useState(false)
   const standings = useMemo(() => {
     return calculateStandings(teams, games)
   }, [teams, games])
@@ -64,30 +66,56 @@ function StandingsTable({ teams, games }) {
         </table>
       </div>
       <div className="legend-container">
-        <div className="legend">
-          <p><strong>{t('legend')}</strong></p>
-          <ul>
-            <li>{t('legendPoints')}</li>
-            <li>{t('legendGames')}</li>
-            <li>{t('legendWinsRegular')}</li>
-            <li>{t('legendWinsShootout')}</li>
-            <li>{t('legendLossesRegular')}</li>
-            <li>{t('legendLossesShootout')}</li>
-            <li>{t('legendDraws')}</li>
-            <li>{t('legendGoalsFor')}</li>
-            <li>{t('legendGoalsAgainst')}</li>
-            <li>{t('legendGoalDiff')}</li>
-          </ul>
+        <div className="legend-wrapper">
+          <div 
+            className="section-header-collapsible"
+            onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            <p><strong>{t('legend')}</strong></p>
+            <span className={`collapse-icon ${isLegendExpanded ? 'expanded' : 'collapsed'}`}>
+              ▼
+            </span>
+          </div>
+          <div className={`section-collapsible-content ${isLegendExpanded ? 'expanded' : 'collapsed'}`}>
+            <div className="legend">
+              <ul>
+                <li>{t('legendPoints')}</li>
+                <li>{t('legendGames')}</li>
+                <li>{t('legendWinsRegular')}</li>
+                <li>{t('legendWinsShootout')}</li>
+                <li>{t('legendLossesRegular')}</li>
+                <li>{t('legendLossesShootout')}</li>
+                <li>{t('legendDraws')}</li>
+                <li>{t('legendGoalsFor')}</li>
+                <li>{t('legendGoalsAgainst')}</li>
+                <li>{t('legendGoalDiff')}</li>
+              </ul>
+            </div>
+          </div>
         </div>
-        <div className="scoring-system">
-          <p><strong>{t('scoringSystem')}</strong></p>
-          <ul>
-            <li>{t('scoringWinRegular')}</li>
-            <li>{t('scoringWinShootout')}</li>
-            <li>{t('scoringDrawRegular')}</li>
-            <li>{t('scoringDrawShootout')}</li>
-            <li>{t('scoringLoss')}</li>
-          </ul>
+        <div className="scoring-system-wrapper">
+          <div 
+            className="section-header-collapsible"
+            onClick={() => setIsScoringSystemExpanded(!isScoringSystemExpanded)}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            <p><strong>{t('scoringSystem')}</strong></p>
+            <span className={`collapse-icon ${isScoringSystemExpanded ? 'expanded' : 'collapsed'}`}>
+              ▼
+            </span>
+          </div>
+          <div className={`section-collapsible-content ${isScoringSystemExpanded ? 'expanded' : 'collapsed'}`}>
+            <div className="scoring-system">
+              <ul>
+                <li>{t('scoringWinRegular')}</li>
+                <li>{t('scoringWinShootout')}</li>
+                <li>{t('scoringDrawRegular')}</li>
+                <li>{t('scoringDrawShootout')}</li>
+                <li>{t('scoringLoss')}</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </section>

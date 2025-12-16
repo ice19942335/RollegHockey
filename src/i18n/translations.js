@@ -96,8 +96,12 @@ export const translations = {
     menuTournamentsList: 'Список турниров',
     menuPlayoffsList: 'Список Плей-оффов',
     menuClearDatabase: 'Очистить БД',
+    clearDatabaseTitle: 'Очистить базу данных',
     clearDatabaseConfirm: 'Это действие удалит все команды и игры. Продолжить?',
+    clearDatabaseWarning: 'Внимание! Это действие удалит ВСЕ данные из базы данных: все турниры, команды и игры. Это действие нельзя отменить.',
     clearDatabaseEmpty: 'База данных уже пуста.',
+    clearDatabaseSuccess: 'База данных успешно очищена',
+    clearDatabaseError: 'Ошибка при очистке базы данных',
     functionInDevelopment: 'Функция в разработке',
     
     // Tournament List
@@ -170,6 +174,8 @@ export const translations = {
     decreaseScore: 'Уменьшить счет',
     pendingGames: 'Игры в процессе',
     noPendingGames: 'Нет игр в процессе',
+    deletedPendingGames: 'Удалено игр в процессе: {count}',
+    noPendingGamesToDelete: 'Нет игр в процессе для удаления',
     addAllTeams: 'Добавить все команды',
   },
   lv: {
@@ -269,8 +275,12 @@ export const translations = {
     menuTournamentsList: 'Turnīru saraksts',
     menuPlayoffsList: 'Play-off saraksts',
     menuClearDatabase: 'Notīrīt datu bāzi',
+    clearDatabaseTitle: 'Notīrīt datu bāzi',
     clearDatabaseConfirm: 'Šī darbība dzēsīs visas komandas un spēles. Turpināt?',
+    clearDatabaseWarning: 'Uzmanību! Šī darbība dzēsīs VISUS datus no datu bāzes: visus turnīrus, komandas un spēles. Šo darbību nevar atsaukt.',
     clearDatabaseEmpty: 'Datu bāze jau ir tukša.',
+    clearDatabaseSuccess: 'Datu bāze veiksmīgi notīrīta',
+    clearDatabaseError: 'Kļūda, notīrot datu bāzi',
     functionInDevelopment: 'Funkcija izstrādē',
     
     // Tournament List
@@ -326,7 +336,7 @@ export const translations = {
     selectNumber: 'Tūru skaits',
     selectTeamToAdd: 'Izvēlieties komandu',
     generate: 'Ģenerēt',
-    generating: 'Ģenerēšana...',
+    generating: 'Ģenerēšana',
     generateSuccess: 'Ģenerēšana veiksmīgi pabeigta',
     generateError: 'Ģenerēšanas kļūda',
     removeTeam: 'Dzēst',
@@ -343,6 +353,8 @@ export const translations = {
     decreaseScore: 'Samazināt rezultātu',
     pendingGames: 'Spēles procesā',
     noPendingGames: 'Nav spēļu procesā',
+    deletedPendingGames: 'Dzēstas spēles procesā: {count}',
+    noPendingGamesToDelete: 'Nav spēļu procesā, ko dzēst',
     addAllTeams: 'Pievienot visas komandas',
   }
 }

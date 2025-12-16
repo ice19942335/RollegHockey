@@ -1,7 +1,7 @@
 import GameCard from './GameCard'
 import { useLanguage } from '../i18n/LanguageContext'
 
-function GamesList({ games, teams, onDeleteGame, onDeleteAllGames }) {
+function GamesList({ games, teams, onDeleteGame, onDeleteAllGames, isDeletingAllGames = false }) {
   const { t } = useLanguage()
   if (games.length === 0) return null
 
@@ -10,9 +10,11 @@ function GamesList({ games, teams, onDeleteGame, onDeleteAllGames }) {
       <div className="games-list-header">
         <h2>{t('gamesTitle')} ({games.length})</h2>
         <button 
-          className="btn-delete-all"
+          className={`btn-delete-all ${isDeletingAllGames ? 'btn-loading' : ''}`}
           onClick={onDeleteAllGames}
+          disabled={isDeletingAllGames}
         >
+          {isDeletingAllGames && <span className="btn-spinner"></span>}
           {t('deleteAllGames')}
         </button>
       </div>

@@ -13,7 +13,8 @@ function GameForm({
   gameType, 
   setGameType,
   onAddGame,
-  onOpenScoreboard
+  onOpenScoreboard,
+  isAddingGame = false
 }) {
   const { t } = useLanguage()
   
@@ -202,9 +203,10 @@ function GameForm({
         </button>
         <button 
           type="submit"
-          className="btn-primary"
-          disabled={!isFormValid}
+          className={`btn-primary ${isAddingGame ? 'btn-loading' : ''}`}
+          disabled={!isFormValid || isAddingGame}
         >
+          {isAddingGame && <span className="btn-spinner"></span>}
           {t('addGame')}
         </button>
       </div>

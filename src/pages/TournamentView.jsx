@@ -13,6 +13,7 @@ import Scoreboard from '../components/Scoreboard'
 import ConfirmModal from '../components/ConfirmModal'
 import MissingTeamModal from '../components/MissingTeamModal'
 import DeleteTeamModal from '../components/DeleteTeamModal'
+import Notification from '../components/Notification'
 import { loadDataFromSupabase, saveDataToSupabase, loadTournamentsList } from '../utils/supabase'
 import { calculateStandings } from '../utils/calculateStats'
 
@@ -39,6 +40,8 @@ function TournamentView() {
   const [showDeleteAllTeamsModal, setShowDeleteAllTeamsModal] = useState(false)
   const [showDeletePendingGameModal, setShowDeletePendingGameModal] = useState(false)
   const [pendingGameToDelete, setPendingGameToDelete] = useState(null)
+  const [showDeleteGameModal, setShowDeleteGameModal] = useState(false)
+  const [gameToDelete, setGameToDelete] = useState(null)
   const [showApproveGameModal, setShowApproveGameModal] = useState(false)
   const [pendingGameToApprove, setPendingGameToApprove] = useState(null)
   const [teamToDelete, setTeamToDelete] = useState(null)
@@ -46,7 +49,24 @@ function TournamentView() {
   const [missingTeams, setMissingTeams] = useState([])
   const [pendingGameData, setPendingGameData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+  // Локальные состояния загрузки для разных операций
+  const [isAddingTeam, setIsAddingTeam] = useState(false)
+  const [isAddingGame, setIsAddingGame] = useState(false)
+  const [isGeneratingTeams, setIsGeneratingTeams] = useState(false)
+  const [isDeletingGame, setIsDeletingGame] = useState({})
+  const [isDeletingTeam, setIsDeletingTeam] = useState({})
+  const [isApprovingGame, setIsApprovingGame] = useState({})
+  const [isDeletingPendingGame, setIsDeletingPendingGame] = useState({})
+  const [isDeletingAllGames, setIsDeletingAllGames] = useState(false)
+  const [isDeletingAllTeams, setIsDeletingAllTeams] = useState(false)
+  const [isDeletingAllPendingGames, setIsDeletingAllPendingGames] = useState(false)
+  // Уведомления
+  const [notification, setNotification] = useState(null)
+  // Состояние для сворачивания секции добавления команды
+  const [isAddTeamSectionExpanded, setIsAddTeamSectionExpanded] = useState(true)
+  const [isRoundGeneratorExpanded, setIsRoundGeneratorExpanded] = useState(true)
+  const [isAddGameSectionExpanded, setIsAddGameSectionExpanded] = useState(true)
+  const hasSetInitialCollapseRef = useRef(false)
   const isInitialLoadRef = useRef(true)
   const previousDataRef = useRef({ teams: [], games: [] })
   const hasLoadedRef = useRef(false)
@@ -89,6 +109,18 @@ function TournamentView() {
     }
   }
   
+  // Автоматически сворачиваем секцию добавления команды при первой загрузке, если команды уже есть
+  useEffect(() => {
+    if (!isLoading && !hasSetInitialCollapseRef.current) {
+      hasSetInitialCollapseRef.current = true
+      if (teams.length > 0) {
+        setIsAddTeamSectionExpanded(false)
+      } else {
+        setIsAddTeamSectionExpanded(true)
+      }
+    }
+  }, [isLoading, teams.length])
+
   // Загрузка данных при старте
   useEffect(() => {
     if (hasLoadedRef.current) return
@@ -132,7 +164,12 @@ function TournamentView() {
   }, [tournamentId, location.state])
   
   
-  // Автосохранение при изменении teams или games
+  // Функция для показа уведомлений
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type })
+  }
+
+  // Автосохранение при изменении teams или games (без UI индикации)
   useEffect(() => {
     if (isLoading || isInitialLoadRef.current) return
     if (isAddingGameRef.current) return
@@ -148,14 +185,11 @@ function TournamentView() {
     }
     
     const saveData = async () => {
-      setIsSaving(true)
       try {
         const standings = calculateStandings(teams, games)
         await saveDataToSupabase(teams, games, standings, tournamentId)
       } catch (error) {
         console.error('Ошибка сохранения данных:', error)
-      } finally {
-        setIsSaving(false)
       }
     }
     
@@ -164,59 +198,52 @@ function TournamentView() {
 
   const addTeam = async () => {
     if (newTeamName.trim() && !teams.find(t => t.name === newTeamName.trim())) {
-      const newTeam = {
-        id: String(Date.now()),
-        name: newTeamName.trim(),
-        logo: newTeamLogo.trim() || '🏒',
-        color: newTeamColor || '#1e3c72'
-      }
-      const updatedTeams = [...teams, newTeam]
-      setTeams(updatedTeams)
+      setIsAddingTeam(true)
       
-      // Обновляем previousDataRef для автосохранения
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(updatedTeams)),
-        games: JSON.parse(JSON.stringify(games))
-      }
-      
-      // Явно сохраняем в Supabase
       try {
-        setIsSaving(true)
+        const newTeam = {
+          id: String(Date.now()),
+          name: newTeamName.trim(),
+          logo: newTeamLogo.trim() || '🏒',
+          color: newTeamColor || '#1e3c72'
+        }
+        const updatedTeams = [...teams, newTeam]
+        setTeams(updatedTeams)
+        
+        // Обновляем previousDataRef для автосохранения
+        previousDataRef.current = {
+          teams: JSON.parse(JSON.stringify(updatedTeams)),
+          games: JSON.parse(JSON.stringify(games))
+        }
+        
+        // Явно сохраняем в Supabase
         const standings = calculateStandings(updatedTeams, games)
         await saveDataToSupabase(updatedTeams, games, standings, tournamentId)
+        showNotification('Команда добавлена ✓', 'success')
+        
+        setNewTeamName('')
+        setNewTeamLogo('🏒')
+        setNewTeamColor('#1e3c72')
       } catch (error) {
         console.error('Ошибка сохранения команды:', error)
+        showNotification('Ошибка сохранения команды', 'error')
       } finally {
-        setIsSaving(false)
+        setIsAddingTeam(false)
       }
-      
-      setNewTeamName('')
-      setNewTeamLogo('🏒')
-      setNewTeamColor('#1e3c72')
     }
   }
 
   const handleGeneratingStart = () => {
-    // Блокируем приложение в начале генерации
+    // Устанавливаем состояние загрузки для генерации
     isAddingGameRef.current = true
-    setIsSaving(true)
+    setIsGeneratingTeams(true)
   }
 
   const handleGenerateTeams = async (generatedTeams) => {
-    console.log('handleGenerateTeams вызван с:', generatedTeams)
-    
     if (!generatedTeams || generatedTeams.length === 0) {
-      console.warn('Нет команд для добавления')
-      setIsSaving(false)
+      setIsGeneratingTeams(false)
       isAddingGameRef.current = false
       return
-    }
-
-    // Блокировка уже установлена в handleGeneratingStart
-    // Убедимся что она активна
-    if (!isSaving) {
-      isAddingGameRef.current = true
-      setIsSaving(true)
     }
 
     try {
@@ -226,12 +253,9 @@ function TournamentView() {
         !existingNames.includes(team.name.toLowerCase().trim())
       )
 
-      console.log('Уникальные команды для добавления:', uniqueTeams)
-
       if (uniqueTeams.length > 0) {
         const updatedTeams = [...teams, ...uniqueTeams]
         setTeams(updatedTeams)
-        console.log('Команды добавлены в состояние')
 
         // Обновляем previousDataRef
         previousDataRef.current = {
@@ -242,14 +266,15 @@ function TournamentView() {
         // Сохраняем в Supabase
         const standings = calculateStandings(updatedTeams, games)
         await saveDataToSupabase(updatedTeams, games, standings, tournamentId)
-        console.log('Команды сохранены в Supabase')
+        showNotification(`Добавлено команд: ${uniqueTeams.length} ✓`, 'success')
       } else {
-        console.warn('Все команды уже существуют')
+        showNotification('Все команды уже существуют', 'error')
       }
     } catch (error) {
       console.error('Ошибка при сохранении сгенерированных команд:', error)
+      showNotification('Ошибка сохранения команд', 'error')
     } finally {
-      setIsSaving(false)
+      setIsGeneratingTeams(false)
       // Сбрасываем флаг после небольшой задержки
       setTimeout(() => {
         isAddingGameRef.current = false
@@ -274,12 +299,37 @@ function TournamentView() {
     }
   }
   
-  const confirmDeleteTeam = (id) => {
-    setTeams(teams.filter(t => String(t.id) !== String(id)))
-    setGames(games.filter(g => String(g.homeTeamId) !== String(id) && String(g.awayTeamId) !== String(id)))
+  const confirmDeleteTeam = async (id) => {
+    if (!id) return
+    
+    setIsDeletingTeam({ [id]: true })
     setShowDeleteTeamModal(false)
-    setTeamToDelete(null)
-    setRelatedGamesToDelete([])
+    
+    try {
+      const updatedTeams = teams.filter(t => String(t.id) !== String(id))
+      const updatedGames = games.filter(g => String(g.homeTeamId) !== String(id) && String(g.awayTeamId) !== String(id))
+      
+      setTeams(updatedTeams)
+      setGames(updatedGames)
+      
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(updatedTeams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+      
+      // Сохраняем в Supabase
+      const standings = calculateStandings(updatedTeams, updatedGames)
+      await saveDataToSupabase(updatedTeams, updatedGames, standings, tournamentId)
+      showNotification('Команда удалена ✓', 'success')
+    } catch (error) {
+      console.error('Ошибка при удалении команды:', error)
+      showNotification('Ошибка удаления команды', 'error')
+    } finally {
+      setTeamToDelete(null)
+      setRelatedGamesToDelete([])
+      setIsDeletingTeam({ [id]: false })
+    }
   }
   
   const cancelDeleteTeam = () => {
@@ -303,7 +353,7 @@ function TournamentView() {
         parseInt(homeScore) >= 0 && parseInt(awayScore) >= 0) {
       
       isAddingGameRef.current = true
-      setIsSaving(true)
+      setIsAddingGame(true)
       
       try {
         const freshData = await loadData(false)
@@ -327,7 +377,7 @@ function TournamentView() {
         }
         
         if (missingTeamsList.length > 0) {
-          setIsSaving(false)
+          setIsAddingGame(false)
           
           const homeScoreInt = parseInt(homeScore)
           const awayScoreInt = parseInt(awayScore)
@@ -365,7 +415,14 @@ function TournamentView() {
           homeScore: homeScoreInt,
           awayScore: awayScoreInt,
           gameType: gameType,
-          date: new Date().toLocaleDateString('ru-RU')
+          date: new Date().toLocaleString('ru-RU', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit', 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+          })
         }
         
         const updatedGames = [...currentGames, newGame]
@@ -382,6 +439,7 @@ function TournamentView() {
         
         const standings = calculateStandings(currentTeams, updatedGames)
         await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
+        showNotification('Игра добавлена ✓', 'success')
         
         setSelectedHomeTeam('')
         setSelectedAwayTeam('')
@@ -405,7 +463,14 @@ function TournamentView() {
           homeScore: homeScoreInt,
           awayScore: awayScoreInt,
           gameType: gameType,
-          date: new Date().toLocaleDateString('ru-RU')
+          date: new Date().toLocaleString('ru-RU', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit', 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+          })
         }
         
         const updatedGames = [...games, newGame]
@@ -430,7 +495,7 @@ function TournamentView() {
         setGameType('regular')
       } finally {
         isAddingGameRef.current = false
-        setIsSaving(false)
+        setIsAddingGame(false)
       }
     }
   }
@@ -438,7 +503,7 @@ function TournamentView() {
   const handleConfirmMissingTeams = async () => {
     if (!pendingGameData) return
     
-    setIsSaving(true)
+    setIsAddingGame(true)
     setShowMissingTeamModal(false)
     
     try {
@@ -488,6 +553,7 @@ function TournamentView() {
       
       const standings = calculateStandings(updatedTeams, updatedGames)
       await saveDataToSupabase(updatedTeams, updatedGames, standings, tournamentId)
+      showNotification('Игра добавлена ✓', 'success')
       
       setSelectedHomeTeam('')
       setSelectedAwayTeam('')
@@ -499,8 +565,9 @@ function TournamentView() {
       setMissingTeams([])
     } catch (error) {
       console.error('Ошибка при создании команд и сохранении игры:', error)
+      showNotification('Ошибка сохранения игры', 'error')
     } finally {
-      setIsSaving(false)
+      setIsAddingGame(false)
       isAddingGameRef.current = false
     }
   }
@@ -510,7 +577,7 @@ function TournamentView() {
     setPendingGameData(null)
     setMissingTeams([])
     isAddingGameRef.current = false
-    setIsSaving(false)
+    setIsAddingGame(false)
   }
 
   // Обработчик генерации игр из TournamentRoundGenerator
@@ -557,7 +624,7 @@ function TournamentView() {
     setShowApproveGameModal(false)
     setPendingGameToApprove(null)
     
-    setIsSaving(true) // Блокируем приложение
+    setIsApprovingGame({ [gameId]: true })
     try {
       // Сначала находим игру в локальном состоянии, чтобы сохранить актуальный счет
       const localGame = games.find(g => g.id === gameId)
@@ -624,7 +691,7 @@ function TournamentView() {
     setShowDeletePendingGameModal(false)
     setPendingGameToDelete(null)
     
-    setIsSaving(true) // Блокируем приложение
+    setIsDeletingPendingGame(prev => ({ ...prev, [gameId]: true }))
     try {
       // Загружаем свежие данные
       const freshData = await loadData(false)
@@ -649,10 +716,17 @@ function TournamentView() {
       const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
       const standings = calculateStandings(currentTeams, updatedGames)
       await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
+      
+      showNotification(t('deletePendingGame') + ' ✓', 'success')
     } catch (error) {
       console.error('Ошибка при удалении pending игры:', error)
+      showNotification('Ошибка удаления игры', 'error')
     } finally {
-      setIsSaving(false) // Снимаем блокировку
+      setIsDeletingPendingGame(prev => {
+        const newState = { ...prev }
+        delete newState[gameId]
+        return newState
+      })
     }
   }
 
@@ -664,7 +738,7 @@ function TournamentView() {
 
   // Обработчик удаления всех pending игр
   const handleDeleteAllPendingGames = async () => {
-    setIsSaving(true) // Блокируем приложение
+    setIsDeletingAllPendingGames(true)
     try {
       // Загружаем свежие данные
       const freshData = await loadData(false)
@@ -672,6 +746,7 @@ function TournamentView() {
 
       // Удаляем все pending игры
       const updatedGames = currentGames.filter(game => !game.pending || game.pending === false)
+      const deletedCount = currentGames.length - updatedGames.length
 
       // Обновляем состояние
       setGames(updatedGames)
@@ -689,10 +764,17 @@ function TournamentView() {
       const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
       const standings = calculateStandings(currentTeams, updatedGames)
       await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
+      
+      if (deletedCount > 0) {
+        showNotification(`${t('deletedPendingGames', { count: deletedCount })} ✓`, 'success')
+      } else {
+        showNotification(t('noPendingGamesToDelete'), 'error')
+      }
     } catch (error) {
       console.error('Ошибка при удалении всех pending игр:', error)
+      showNotification('Ошибка удаления игр', 'error')
     } finally {
-      setIsSaving(false) // Снимаем блокировку
+      setIsDeletingAllPendingGames(false)
     }
   }
 
@@ -728,17 +810,107 @@ function TournamentView() {
     }, 100)
   }
 
-  const deleteGame = (id) => {
-    setGames(games.filter(g => g.id !== id))
+  const handleDeleteGameClick = (gameId) => {
+    setGameToDelete(gameId)
+    setShowDeleteGameModal(true)
+  }
+
+  const cancelDeleteGame = () => {
+    setShowDeleteGameModal(false)
+    setGameToDelete(null)
+  }
+
+  const confirmDeleteGame = async () => {
+    if (!gameToDelete) return
+    
+    setShowDeleteGameModal(false)
+    const gameId = gameToDelete
+    setGameToDelete(null)
+    
+    setIsDeletingGame(prev => ({ ...prev, [gameId]: true }))
+    try {
+      // Загружаем свежие данные
+      const freshData = await loadData(false)
+      const currentGames = freshData.games.length > 0 ? freshData.games : games
+
+      // Удаляем игру
+      const updatedGames = currentGames.filter(game => game.id !== gameId)
+
+      // Обновляем состояние
+      setGames(updatedGames)
+      if (freshData.teams.length > 0) {
+        setTeams(freshData.teams)
+      }
+
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+
+      // Сохраняем в Supabase
+      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+      const standings = calculateStandings(currentTeams, updatedGames)
+      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
+      
+      showNotification(t('deletePendingGame') + ' ✓', 'success')
+    } catch (error) {
+      console.error('Ошибка при удалении игры:', error)
+      showNotification('Ошибка удаления игры', 'error')
+    } finally {
+      setIsDeletingGame(prev => {
+        const newState = { ...prev }
+        delete newState[gameId]
+        return newState
+      })
+    }
   }
 
   const handleDeleteAllGames = () => {
     setShowConfirmModal(true)
   }
 
-  const confirmDeleteAllGames = () => {
-    setGames([])
+  const confirmDeleteAllGames = async () => {
     setShowConfirmModal(false)
+    setIsDeletingAllGames(true)
+    try {
+      // Загружаем свежие данные из базы данных
+      const freshData = await loadData(false)
+      // Всегда используем freshData.games, чтобы получить все игры из базы данных
+      const currentGames = freshData.games || []
+      
+      // Удаляем только игры, где pending == false (оставляем pending игры)
+      const updatedGames = currentGames.filter(game => game.pending === true)
+      const deletedCount = currentGames.length - updatedGames.length
+
+      // Обновляем состояние
+      setGames(updatedGames)
+      if (freshData.teams.length > 0) {
+        setTeams(freshData.teams)
+      }
+
+      // Обновляем previousDataRef
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
+        games: JSON.parse(JSON.stringify(updatedGames))
+      }
+
+      // Сохраняем в Supabase (оставляем только pending игры)
+      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
+      const standings = calculateStandings(currentTeams, updatedGames)
+      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
+      
+      if (deletedCount > 0) {
+        showNotification(`Удалено игр: ${deletedCount} ✓`, 'success')
+      } else {
+        showNotification('Нет игр для удаления', 'error')
+      }
+    } catch (error) {
+      console.error('Ошибка при удалении всех игр:', error)
+      showNotification('Ошибка удаления игр', 'error')
+    } finally {
+      setIsDeletingAllGames(false)
+    }
   }
 
   const cancelDeleteAllGames = () => {
@@ -750,7 +922,7 @@ function TournamentView() {
   }
 
   const confirmDeleteAllTeams = async () => {
-    setIsSaving(true)
+    setIsDeletingAllTeams(true)
     setShowDeleteAllTeamsModal(false)
     
     try {
@@ -767,11 +939,12 @@ function TournamentView() {
       // Сохраняем в Supabase (пустые массивы)
       const standings = []
       await saveDataToSupabase([], [], standings, tournamentId)
-      console.log('Все команды и игры удалены')
+      showNotification('Все команды удалены ✓', 'success')
     } catch (error) {
       console.error('Ошибка при удалении всех команд:', error)
+      showNotification('Ошибка удаления команд', 'error')
     } finally {
-      setIsSaving(false)
+      setIsDeletingAllTeams(false)
     }
   }
 
@@ -848,13 +1021,12 @@ function TournamentView() {
 
   return (
     <div className="app">
-      {isSaving && (
-        <div className="saving-overlay">
-          <div className="saving-message">
-            <h2>{t('saving')}</h2>
-            <div className="spinner saving-spinner"></div>
-          </div>
-        </div>
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
       )}
       {showScoreboard && (() => {
         // Если открыто табло для pending игры, используем данные игры
@@ -921,20 +1093,33 @@ function TournamentView() {
         })()}
         
         <section className="section">
-          <h2>{t('addTeamSection')}</h2>
-          <TeamForm
-            newTeamName={newTeamName}
-            setNewTeamName={setNewTeamName}
-            newTeamLogo={newTeamLogo}
-            setNewTeamLogo={setNewTeamLogo}
-            newTeamColor={newTeamColor}
-            setNewTeamColor={setNewTeamColor}
-            onAddTeam={addTeam}
-            onGenerateTeams={handleGenerateTeams}
-            onGeneratingStart={handleGeneratingStart}
-            existingTeams={teams}
-            language={language}
-          />
+          <div 
+            className="section-header-collapsible"
+            onClick={() => setIsAddTeamSectionExpanded(!isAddTeamSectionExpanded)}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            <h2>{t('addTeamSection')}</h2>
+            <span className={`collapse-icon ${isAddTeamSectionExpanded ? 'expanded' : 'collapsed'}`}>
+              ▼
+            </span>
+          </div>
+          <div className={`section-collapsible-content ${isAddTeamSectionExpanded ? 'expanded' : 'collapsed'}`}>
+            <TeamForm
+              newTeamName={newTeamName}
+              setNewTeamName={setNewTeamName}
+              newTeamLogo={newTeamLogo}
+              setNewTeamLogo={setNewTeamLogo}
+              newTeamColor={newTeamColor}
+              setNewTeamColor={setNewTeamColor}
+              onAddTeam={addTeam}
+              onGenerateTeams={handleGenerateTeams}
+              onGeneratingStart={handleGeneratingStart}
+              existingTeams={teams}
+              language={language}
+              isAddingTeam={isAddingTeam}
+              isGeneratingTeams={isGeneratingTeams}
+            />
+          </div>
           <TeamList 
             teams={teams} 
             onDeleteTeam={deleteTeam}
@@ -944,31 +1129,56 @@ function TournamentView() {
         </section>
 
         <section className="section">
-          <TournamentRoundGenerator 
-            teams={teams} 
-            tournamentId={tournamentId}
-            onGamesGenerated={handleGamesGenerated}
-          />
+          <div 
+            className="section-header-collapsible"
+            onClick={() => setIsRoundGeneratorExpanded(!isRoundGeneratorExpanded)}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            <h2>{t('tournamentRoundGenerator')}</h2>
+            <span className={`collapse-icon ${isRoundGeneratorExpanded ? 'expanded' : 'collapsed'}`}>
+              ▼
+            </span>
+          </div>
+          <div className={`section-collapsible-content ${isRoundGeneratorExpanded ? 'expanded' : 'collapsed'}`}>
+            <TournamentRoundGenerator 
+              teams={teams} 
+              tournamentId={tournamentId}
+              onGamesGenerated={handleGamesGenerated}
+              onNotification={showNotification}
+            />
+          </div>
         </section>
 
         {teams.length >= 2 && (
           <section className="section">
-            <h2>{t('addGameSection')}</h2>
-            <GameForm
-              teams={teams}
-              selectedHomeTeam={selectedHomeTeam}
-              setSelectedHomeTeam={setSelectedHomeTeam}
-              selectedAwayTeam={selectedAwayTeam}
-              setSelectedAwayTeam={setSelectedAwayTeam}
-              homeScore={homeScore}
-              setHomeScore={setHomeScore}
-              awayScore={awayScore}
-              setAwayScore={setAwayScore}
-              gameType={gameType}
-              setGameType={setGameType}
-              onAddGame={addGame}
-              onOpenScoreboard={openScoreboard}
-            />
+            <div 
+              className="section-header-collapsible"
+              onClick={() => setIsAddGameSectionExpanded(!isAddGameSectionExpanded)}
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+            >
+              <h2>{t('addGameSection')}</h2>
+              <span className={`collapse-icon ${isAddGameSectionExpanded ? 'expanded' : 'collapsed'}`}>
+                ▼
+              </span>
+            </div>
+            <div className={`section-collapsible-content ${isAddGameSectionExpanded ? 'expanded' : 'collapsed'}`}>
+              <GameForm
+                teams={teams}
+                selectedHomeTeam={selectedHomeTeam}
+                setSelectedHomeTeam={setSelectedHomeTeam}
+                selectedAwayTeam={selectedAwayTeam}
+                setSelectedAwayTeam={setSelectedAwayTeam}
+                homeScore={homeScore}
+                setHomeScore={setHomeScore}
+                awayScore={awayScore}
+                setAwayScore={setAwayScore}
+                gameType={gameType}
+                setGameType={setGameType}
+                onAddGame={addGame}
+                onOpenScoreboard={openScoreboard}
+                isAddingGame={isAddingGame}
+              />
+            </div>
           </section>
         )}
 
@@ -983,10 +1193,16 @@ function TournamentView() {
                 <h2>{t('pendingGames')} ({pendingGames.length})</h2>
                 {pendingGames.length > 0 && (
                   <button
-                    className="btn-delete-all-pending-games"
-                    onClick={handleDeleteAllPendingGames}
+                    className={`btn-delete-all-pending-games ${isDeletingAllPendingGames ? 'btn-loading' : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleDeleteAllPendingGames()
+                    }}
                     title={t('deleteAllPendingGames')}
+                    disabled={isDeletingAllPendingGames}
                   >
+                    {isDeletingAllPendingGames && <span className="btn-spinner"></span>}
                     {t('deleteAllPendingGames')}
                   </button>
                 )}
@@ -1068,10 +1284,12 @@ function TournamentView() {
                           {t('approveGame')}
                         </button>
                         <button
-                          className="btn-delete-pending-game"
+                          className={`btn-delete-pending-game ${isDeletingPendingGame[game.id] ? 'btn-loading' : ''}`}
                           onClick={() => handleDeletePendingGameClick(game)}
                           title={t('deletePendingGame')}
+                          disabled={isDeletingPendingGame[game.id]}
                         >
+                          {isDeletingPendingGame[game.id] && <span className="btn-spinner"></span>}
                           🗑️
                         </button>
                       </div>
@@ -1086,8 +1304,9 @@ function TournamentView() {
         <GamesList 
           games={games.filter(g => !g.pending || g.pending === false)} 
           teams={teams} 
-          onDeleteGame={deleteGame}
+          onDeleteGame={handleDeleteGameClick}
           onDeleteAllGames={handleDeleteAllGames}
+          isDeletingAllGames={isDeletingAllGames}
         />
 
       <ConfirmModal
@@ -1095,7 +1314,7 @@ function TournamentView() {
         onClose={cancelDeleteAllGames}
         onConfirm={confirmDeleteAllGames}
         title={t('deleteAllGamesTitle')}
-        message={t('deleteAllGamesMessage').replace('{count}', games.length)}
+        message={t('deleteAllGamesMessage', { count: games.length })}
       />
 
       <ConfirmModal
@@ -1110,6 +1329,14 @@ function TournamentView() {
         isOpen={showDeletePendingGameModal}
         onClose={cancelDeletePendingGame}
         onConfirm={() => pendingGameToDelete && handleDeletePendingGame(pendingGameToDelete.id)}
+        title={t('deletePendingGameTitle')}
+        message={t('deletePendingGameMessage')}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteGameModal}
+        onClose={cancelDeleteGame}
+        onConfirm={confirmDeleteGame}
         title={t('deletePendingGameTitle')}
         message={t('deletePendingGameMessage')}
       />
@@ -1136,7 +1363,11 @@ function TournamentView() {
       <DeleteTeamModal
         isOpen={showDeleteTeamModal}
         onClose={cancelDeleteTeam}
-        onConfirm={() => teamToDelete && confirmDeleteTeam(teamToDelete.id)}
+        onConfirm={() => {
+          if (teamToDelete && teamToDelete.id) {
+            confirmDeleteTeam(teamToDelete.id)
+          }
+        }}
         team={teamToDelete}
         relatedGames={relatedGamesToDelete}
         teams={teams}

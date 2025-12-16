@@ -2,13 +2,12 @@ import { useState } from 'react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { generateRoundRobinGames } from '../utils/generateRounds'
 
-function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
+function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated, onNotification }) {
   const { t } = useLanguage()
   const [selectedTeams, setSelectedTeams] = useState([])
   const [selectedTeamToAdd, setSelectedTeamToAdd] = useState('')
   const [selectedNumber, setSelectedNumber] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generateStatus, setGenerateStatus] = useState(null) // 'success' | 'error' | null
 
   // Доступные команды для основного дропдауна (исключая уже добавленные)
   const availableTeams = teams.filter(team => 
@@ -69,20 +68,21 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
   const handleGenerate = async () => {
     // Проверяем, что выбраны команды (минимум 2)
     if (selectedTeams.length < 2) {
-      setGenerateStatus('error')
-      setTimeout(() => setGenerateStatus(null), 3000)
+      if (onNotification) {
+        onNotification('Выберите минимум 2 команды', 'error')
+      }
       return
     }
 
     // Проверяем, что выбрано количество туров
     if (!selectedNumber || parseInt(selectedNumber) < 1) {
-      setGenerateStatus('error')
-      setTimeout(() => setGenerateStatus(null), 3000)
+      if (onNotification) {
+        onNotification('Выберите количество туров', 'error')
+      }
       return
     }
 
     setIsGenerating(true)
-    setGenerateStatus(null)
 
     try {
       // Генерируем игры
@@ -90,8 +90,9 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
       const newGames = generateRoundRobinGames(selectedTeams, rounds)
 
       if (newGames.length === 0) {
-        setGenerateStatus('error')
-        setTimeout(() => setGenerateStatus(null), 3000)
+        if (onNotification) {
+          onNotification('Не удалось сгенерировать игры', 'error')
+        }
         setIsGenerating(false)
         return
       }
@@ -105,12 +106,15 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
       setSelectedTeams([])
       setSelectedTeamToAdd('')
       setSelectedNumber('')
-      setGenerateStatus('success')
-      setTimeout(() => setGenerateStatus(null), 3000)
+      
+      if (onNotification) {
+        onNotification(`Сгенерировано игр: ${newGames.length} ✓`, 'success')
+      }
     } catch (error) {
       console.error('Ошибка генерации игр:', error)
-      setGenerateStatus('error')
-      setTimeout(() => setGenerateStatus(null), 3000)
+      if (onNotification) {
+        onNotification('Ошибка генерации игр', 'error')
+      }
     } finally {
       setIsGenerating(false)
     }
@@ -118,8 +122,6 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
 
   return (
     <div className="tournament-round-generator">
-      <h2>{t('tournamentRoundGenerator')}</h2>
-      
       {/* Переключатель типа генерации */}
       <div className="round-generator-type-toggle">
         <label className="round-generator-type-label">
@@ -218,32 +220,16 @@ function TournamentRoundGenerator({ teams, tournamentId, onGamesGenerated }) {
             ))}
           </select>
           <button
-            className="round-generator-generate-btn"
+            className={`round-generator-generate-btn ${isGenerating ? 'btn-loading' : ''}`}
             onClick={handleGenerate}
             disabled={!selectedNumber || selectedTeams.length < 2 || isGenerating}
           >
-            {isGenerating ? (
-              <>
-                <span className="button-spinner"></span>
-                {t('generating')}
-              </>
-            ) : (
-              t('generate')
-            )}
+            {isGenerating && <span className="btn-spinner"></span>}
+            {isGenerating ? t('generating') : t('generate')}
           </button>
         </div>
       </div>
 
-      {generateStatus === 'success' && (
-        <p className="round-generator-status success">
-          {t('generateSuccess') || `${t('generate')} ${t('success') || 'успешно'}`}
-        </p>
-      )}
-      {generateStatus === 'error' && (
-        <p className="round-generator-status error">
-          {t('generateError') || 'Ошибка генерации'}
-        </p>
-      )}
     </div>
   )
 }

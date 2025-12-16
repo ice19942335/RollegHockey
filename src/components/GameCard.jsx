@@ -16,12 +16,6 @@ function GameCard({ game, homeTeam, awayTeam, onDelete }) {
 
   return (
     <div className="game-card">
-      <button 
-        className="delete-btn-small"
-        onClick={() => onDelete(game.id)}
-      >
-        ✕
-      </button>
       <div className="game-teams-display">
         <div className="game-team">
           <span className="game-logo">
@@ -50,6 +44,13 @@ function GameCard({ game, homeTeam, awayTeam, onDelete }) {
       <div className="game-info">
         <span className="game-type-badge">{GAME_TYPE_LABELS[game.gameType]}</span>
         <span className="game-date">{game.date}</span>
+        <button 
+          className="btn-delete-game-card"
+          onClick={() => onDelete(game.id)}
+          title={t('deletePendingGame')}
+        >
+          🗑️
+        </button>
       </div>
     </div>
   )
