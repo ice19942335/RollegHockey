@@ -11,16 +11,5 @@ export default defineConfig({
     sourcemap: false,
     minify: 'esbuild',
   },
-  test: {
-    globals: true,
-    environment: 'happy-dom',
-    setupFiles: './src/test/setup.js',
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
-  },
 })
 
