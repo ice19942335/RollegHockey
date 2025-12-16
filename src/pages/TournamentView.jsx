@@ -13,7 +13,7 @@ import Scoreboard from '../components/Scoreboard'
 import ConfirmModal from '../components/ConfirmModal'
 import MissingTeamModal from '../components/MissingTeamModal'
 import DeleteTeamModal from '../components/DeleteTeamModal'
-import { loadDataFromSheets, saveDataToSheets, loadTournamentsList } from '../utils/googleSheets'
+import { loadDataFromSupabase, saveDataToSupabase, loadTournamentsList } from '../utils/supabase'
 import { calculateStandings } from '../utils/calculateStats'
 
 function TournamentView() {
@@ -47,9 +47,6 @@ function TournamentView() {
   const [pendingGameData, setPendingGameData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [savingSeconds, setSavingSeconds] = useState(0)
-  const savingIntervalRef = useRef(null)
-  const savingTimeoutRef = useRef(null)
   const isInitialLoadRef = useRef(true)
   const previousDataRef = useRef({ teams: [], games: [] })
   const hasLoadedRef = useRef(false)
@@ -59,13 +56,13 @@ function TournamentView() {
   const [tournamentName, setTournamentName] = useState('')
   const [tournamentDescription, setTournamentDescription] = useState('')
   
-  // Функция загрузки данных из Google Sheets для конкретного турнира
+  // Функция загрузки данных из Supabase для конкретного турнира
   const loadData = async (showLoading = false) => {
     if (showLoading) {
       setIsLoading(true)
     }
     try {
-      const data = await loadDataFromSheets(tournamentId)
+      const data = await loadDataFromSupabase(tournamentId)
       if (data.teams.length > 0 || data.games.length > 0) {
         setTeams(data.teams)
         setGames(data.games)
@@ -134,37 +131,6 @@ function TournamentView() {
     }
   }, [tournamentId, location.state])
   
-  // Счетчик секунд при сохранении
-  useEffect(() => {
-    if (savingIntervalRef.current) {
-      clearInterval(savingIntervalRef.current)
-      savingIntervalRef.current = null
-    }
-    if (savingTimeoutRef.current) {
-      clearTimeout(savingTimeoutRef.current)
-      savingTimeoutRef.current = null
-    }
-    
-    if (isSaving) {
-      setSavingSeconds(0)
-      savingIntervalRef.current = setInterval(() => {
-        setSavingSeconds(prev => prev + 1)
-      }, 1000)
-    } else {
-      setSavingSeconds(0)
-    }
-    
-    return () => {
-      if (savingIntervalRef.current) {
-        clearInterval(savingIntervalRef.current)
-        savingIntervalRef.current = null
-      }
-      if (savingTimeoutRef.current) {
-        clearTimeout(savingTimeoutRef.current)
-        savingTimeoutRef.current = null
-      }
-    }
-  }, [isSaving])
   
   // Автосохранение при изменении teams или games
   useEffect(() => {
@@ -185,7 +151,7 @@ function TournamentView() {
       setIsSaving(true)
       try {
         const standings = calculateStandings(teams, games)
-        await saveDataToSheets(teams, games, standings, tournamentId)
+        await saveDataToSupabase(teams, games, standings, tournamentId)
       } catch (error) {
         console.error('Ошибка сохранения данных:', error)
       } finally {
@@ -196,14 +162,34 @@ function TournamentView() {
     saveData()
   }, [teams, games, isLoading, tournamentId])
 
-  const addTeam = () => {
+  const addTeam = async () => {
     if (newTeamName.trim() && !teams.find(t => t.name === newTeamName.trim())) {
-      setTeams([...teams, {
+      const newTeam = {
         id: String(Date.now()),
         name: newTeamName.trim(),
         logo: newTeamLogo.trim() || '🏒',
         color: newTeamColor || '#1e3c72'
-      }])
+      }
+      const updatedTeams = [...teams, newTeam]
+      setTeams(updatedTeams)
+      
+      // Обновляем previousDataRef для автосохранения
+      previousDataRef.current = {
+        teams: JSON.parse(JSON.stringify(updatedTeams)),
+        games: JSON.parse(JSON.stringify(games))
+      }
+      
+      // Явно сохраняем в Supabase
+      try {
+        setIsSaving(true)
+        const standings = calculateStandings(updatedTeams, games)
+        await saveDataToSupabase(updatedTeams, games, standings, tournamentId)
+      } catch (error) {
+        console.error('Ошибка сохранения команды:', error)
+      } finally {
+        setIsSaving(false)
+      }
+      
       setNewTeamName('')
       setNewTeamLogo('🏒')
       setNewTeamColor('#1e3c72')
@@ -253,10 +239,10 @@ function TournamentView() {
           games: JSON.parse(JSON.stringify(games))
         }
 
-        // Сохраняем в Google Sheets
+        // Сохраняем в Supabase
         const standings = calculateStandings(updatedTeams, games)
-        await saveDataToSheets(updatedTeams, games, standings, tournamentId)
-        console.log('Команды сохранены в Google Sheets')
+        await saveDataToSupabase(updatedTeams, games, standings, tournamentId)
+        console.log('Команды сохранены в Supabase')
       } else {
         console.warn('Все команды уже существуют')
       }
@@ -395,7 +381,7 @@ function TournamentView() {
         }
         
         const standings = calculateStandings(currentTeams, updatedGames)
-        await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+        await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
         
         setSelectedHomeTeam('')
         setSelectedAwayTeam('')
@@ -432,7 +418,7 @@ function TournamentView() {
         
         try {
           const standings = calculateStandings(teams, updatedGames)
-          await saveDataToSheets(teams, updatedGames, standings, tournamentId)
+          await saveDataToSupabase(teams, updatedGames, standings, tournamentId)
         } catch (saveError) {
           console.error('Ошибка сохранения данных:', saveError)
         }
@@ -501,7 +487,7 @@ function TournamentView() {
       }
       
       const standings = calculateStandings(updatedTeams, updatedGames)
-      await saveDataToSheets(updatedTeams, updatedGames, standings, tournamentId)
+      await saveDataToSupabase(updatedTeams, updatedGames, standings, tournamentId)
       
       setSelectedHomeTeam('')
       setSelectedAwayTeam('')
@@ -549,10 +535,10 @@ function TournamentView() {
         games: JSON.parse(JSON.stringify(updatedGames))
       }
       
-      // Сохраняем в Google Sheets
+      // Сохраняем в Supabase
       const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
       const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
     } catch (error) {
       console.error('Ошибка при сохранении сгенерированных игр:', error)
       throw error
@@ -615,10 +601,10 @@ function TournamentView() {
         games: JSON.parse(JSON.stringify(updatedGames))
       }
       
-      // Сохраняем в Google Sheets
+      // Сохраняем в Supabase
       const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
       const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
     } catch (error) {
       console.error('Ошибка при утверждении игры:', error)
     } finally {
@@ -659,10 +645,10 @@ function TournamentView() {
         games: JSON.parse(JSON.stringify(updatedGames))
       }
 
-      // Сохраняем в Google Sheets
+      // Сохраняем в Supabase
       const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
       const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
     } catch (error) {
       console.error('Ошибка при удалении pending игры:', error)
     } finally {
@@ -699,10 +685,10 @@ function TournamentView() {
         games: JSON.parse(JSON.stringify(updatedGames))
       }
 
-      // Сохраняем в Google Sheets
+      // Сохраняем в Supabase
       const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
       const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSheets(currentTeams, updatedGames, standings, tournamentId)
+      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
     } catch (error) {
       console.error('Ошибка при удалении всех pending игр:', error)
     } finally {
@@ -715,7 +701,7 @@ function TournamentView() {
     // Устанавливаем флаг, чтобы предотвратить автосохранение
     isUpdatingScoreRef.current = true
     
-    // Обновляем счет только локально, без синхронизации с Google Sheets
+    // Обновляем счет только локально, без синхронизации с Supabase
     const updatedGames = games.map(game => {
       if (game.id === gameId) {
         const newHomeScore = teamType === 'home' 
@@ -778,9 +764,9 @@ function TournamentView() {
         games: []
       }
       
-      // Сохраняем в Google Sheets (пустые массивы)
+      // Сохраняем в Supabase (пустые массивы)
       const standings = []
-      await saveDataToSheets([], [], standings, tournamentId)
+      await saveDataToSupabase([], [], standings, tournamentId)
       console.log('Все команды и игры удалены')
     } catch (error) {
       console.error('Ошибка при удалении всех команд:', error)
@@ -866,9 +852,7 @@ function TournamentView() {
         <div className="saving-overlay">
           <div className="saving-message">
             <h2>{t('saving')}</h2>
-            <p style={{ marginTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
-              {t('elapsed').replace('{seconds}', savingSeconds)}
-            </p>
+            <div className="spinner saving-spinner"></div>
           </div>
         </div>
       )}

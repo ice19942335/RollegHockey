@@ -1,4 +1,8 @@
-// Google Sheets API утилиты
+// ⚠️ ВНИМАНИЕ: Этот файл больше не используется!
+// Приложение перешло на Supabase для хранения данных.
+// Этот файл оставлен только для справки и может быть удален в будущем.
+
+// Google Sheets API утилиты (НЕ ИСПОЛЬЗУЕТСЯ)
 import { getSpreadsheetId, getGoogleAppsScriptId } from '../config/googleSheets.js'
 
 // Для записи и чтения используем Google Apps Script

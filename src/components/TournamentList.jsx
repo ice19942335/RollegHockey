@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../i18n/LanguageContext'
-import { loadTournamentsList, loadDataFromSheets, deleteTournament } from '../utils/googleSheets'
-import { IS_DEV_MODE } from '../config/googleSheets'
+import { loadTournamentsList, loadDataFromSupabase, deleteTournament } from '../utils/supabase'
+import { IS_DEV_MODE } from '../config/supabase'
 import DeleteTournamentModal from './DeleteTournamentModal'
 import DeletingTournamentModal from './DeletingTournamentModal'
 import '../App.css'
@@ -63,7 +63,7 @@ function TournamentList() {
       const tournamentsWithTeamsData = await Promise.all(
         data.map(async (tournament) => {
           try {
-            const tournamentData = await loadDataFromSheets(tournament.id)
+            const tournamentData = await loadDataFromSupabase(tournament.id)
             return {
               ...tournament,
               teams: tournamentData.teams || []

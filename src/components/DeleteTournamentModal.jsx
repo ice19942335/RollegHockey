@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLanguage } from '../i18n/LanguageContext'
-import { loadTournamentsList } from '../utils/googleSheets'
+import { loadTournamentsList } from '../utils/supabase'
 import '../App.css'
 
 function DeleteTournamentModal({ 

@@ -1,4 +1,8 @@
-// Google Sheets Configuration
+// ⚠️ ВНИМАНИЕ: Этот файл больше не используется!
+// Приложение перешло на Supabase для хранения данных.
+// Этот файл оставлен только для справки и может быть удален в будущем.
+
+// Google Sheets Configuration (НЕ ИСПОЛЬЗУЕТСЯ)
 // Switch between development and production modes
 
 // Set to true for development mode (uses dev spreadsheet)

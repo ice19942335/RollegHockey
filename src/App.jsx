@@ -5,6 +5,7 @@ import Header from './components/Header'
 import TournamentList from './components/TournamentList'
 import CreateTournament from './components/CreateTournament'
 import TournamentView from './pages/TournamentView'
+import SupabaseConnectionTest from './components/SupabaseConnectionTest'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           </>
         } />
         <Route path="/t/:id" element={<TournamentView />} />
+        <Route path="/test-supabase" element={<SupabaseConnectionTest />} />
       </Routes>
     </div>
   )

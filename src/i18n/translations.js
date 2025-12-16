@@ -76,7 +76,7 @@ export const translations = {
     relatedGames: 'Связанные игры:',
     deleteTeamWarning: 'Вы уверены, что хотите удалить команду и все связанные игры?',
     missingTeamsTitle: 'Команды не найдены',
-    missingTeamsMessage: 'После синхронизации с Google Sheets обнаружено, что следующие команды отсутствуют в данных:',
+    missingTeamsMessage: 'После синхронизации с базой данных обнаружено, что следующие команды отсутствуют в данных:',
     missingTeamsAction: 'Вы можете создать эти команды заново и сохранить их вместе с игрой, либо отменить операцию.',
     cancelAction: 'Отменить',
     createTeamsAndSave: 'Создать команды и сохранить',
@@ -88,7 +88,7 @@ export const translations = {
     
     // Loading & Saving
     loading: 'Загрузка данных...',
-    saving: 'Сохранение, подождите +-15 секунд...',
+    saving: 'Сохранение, подождите...',
     elapsed: 'Прошло: {seconds} сек.',
     
     // Navigation Menu
@@ -249,7 +249,7 @@ export const translations = {
     relatedGames: 'Saistītās spēles:',
     deleteTeamWarning: 'Vai tiešām vēlaties dzēst komandu un visas saistītās spēles?',
     missingTeamsTitle: 'Komandas nav atrastas',
-    missingTeamsMessage: 'Pēc sinhronizācijas ar Google Sheets tika konstatēts, ka šādas komandas nav datu bāzē:',
+    missingTeamsMessage: 'Pēc sinhronizācijas ar datu bāzi tika konstatēts, ka šādas komandas nav datu bāzē:',
     missingTeamsAction: 'Jūs varat izveidot šīs komandas no jauna un saglabāt tās kopā ar spēli, vai arī atcelt darbību.',
     cancelAction: 'Atcelt',
     createTeamsAndSave: 'Izveidot komandas un saglabāt',
@@ -261,7 +261,7 @@ export const translations = {
     
     // Loading & Saving
     loading: 'Datu ielāde...',
-    saving: 'Saglabāšana, lūdzu, uzgaidiet +-15 sekundes...',
+    saving: 'Saglabāšana, lūdzu, uzgaidiet...',
     elapsed: 'Pagājis: {seconds} sek.',
     
     // Navigation Menu

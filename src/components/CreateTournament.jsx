@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../i18n/LanguageContext'
-import { createTournament } from '../utils/googleSheets'
+import { createTournament } from '../utils/supabase'
 import CreatingTournamentModal from './CreatingTournamentModal'
 import '../App.css'
 
