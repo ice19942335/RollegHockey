@@ -1035,6 +1035,11 @@
   text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
   margin-bottom: 0.5rem;
   letter-spacing: 0.2rem;
+  cursor: default;
+}
+
+.company-name:hover {
+  cursor: default;
 }
 
 .header h1 {

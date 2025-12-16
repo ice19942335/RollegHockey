@@ -44,7 +44,7 @@ function Header() {
       <div 
         className="company-name" 
         onClick={handleCompanyNameClick}
-        style={{ cursor: 'pointer', userSelect: 'none' }}
+        style={{ userSelect: 'none' }}
         title=""
       >
         ROLLEG
