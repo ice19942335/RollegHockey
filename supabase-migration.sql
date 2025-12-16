@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.rolleg_games (
     "homeScore" INTEGER DEFAULT 0,
     "awayScore" INTEGER DEFAULT 0,
     "gameType" TEXT DEFAULT 'regular',
+    round INTEGER,
     date TEXT,
     pending BOOLEAN DEFAULT false,
     CONSTRAINT fk_rolleg_games_tournament 
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.rolleg_games (
 -- 4. Создание индексов для оптимизации запросов
 CREATE INDEX IF NOT EXISTS idx_rolleg_teams_tournament_id ON public.rolleg_teams("tournamentId");
 CREATE INDEX IF NOT EXISTS idx_rolleg_games_tournament_id ON public.rolleg_games("tournamentId");
+CREATE INDEX IF NOT EXISTS idx_rolleg_games_tournament_round ON public.rolleg_games("tournamentId", round);
 CREATE INDEX IF NOT EXISTS idx_rolleg_games_home_team_id ON public.rolleg_games("homeTeamId");
 CREATE INDEX IF NOT EXISTS idx_rolleg_games_away_team_id ON public.rolleg_games("awayTeamId");
 

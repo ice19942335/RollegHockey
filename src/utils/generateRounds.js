@@ -35,6 +35,7 @@ export function generateRoundRobinGames(teamIds, rounds) {
         id: gameId,
         homeTeamId: String(homeTeamId),
         awayTeamId: String(awayTeamId),
+        round, // номер тура
         homeScore: 0,
         awayScore: 0,
         gameType: 'regular',

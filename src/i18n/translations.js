@@ -20,6 +20,8 @@ export const translations = {
     addGameSection: 'Добавить игру',
     selectHomeTeam: 'Выберите домашнюю команду',
     selectAwayTeam: 'Выберите гостевую команду',
+    roundLabel: 'Тур (опционально):',
+    roundPlaceholder: 'Напр. {max}',
     openScoreboard: '📺 Открыть табло',
     addGame: 'Добавить игру',
     gameTypeRegular: 'Основное время',
@@ -59,6 +61,8 @@ export const translations = {
     // Games List
     gamesTitle: 'Результаты игр',
     deleteAllGames: '🗑️ Удалить все игры',
+    roundGroupTitle: 'Тур {round}',
+    noRoundGroupTitle: 'Без тура',
     
     // Scoreboard
     team1: 'Команда 1',
@@ -201,6 +205,8 @@ export const translations = {
     addGameSection: 'Pievienot spēli',
     selectHomeTeam: 'Izvēlieties mājas komandu',
     selectAwayTeam: 'Izvēlieties viesu komandu',
+    roundLabel: 'Tūre (nav obligāti):',
+    roundPlaceholder: 'Piem. {max}',
     openScoreboard: '📺 Atvērt rezultātu tablo',
     addGame: 'Pievienot spēli',
     gameTypeRegular: 'Pamata laiks',
@@ -240,6 +246,8 @@ export const translations = {
     // Games List
     gamesTitle: 'Spēļu rezultāti',
     deleteAllGames: '🗑️ Dzēst visas spēles',
+    roundGroupTitle: 'Tūre {round}',
+    noRoundGroupTitle: 'Bez tūres',
     
     // Scoreboard
     team1: 'Komanda 1',

@@ -12,6 +12,9 @@ function GameForm({
   setAwayScore,
   gameType, 
   setGameType,
+  round,
+  setRound,
+  maxRound = 0,
   onAddGame,
   onOpenScoreboard,
   isAddingGame = false
@@ -190,6 +193,28 @@ function GameForm({
           />
           {t('gameTypeShootout')}
         </label>
+      </div>
+
+      <div className="game-round">
+        <label className="game-round-label">
+          {t('roundLabel')}
+          <input
+            type="number"
+            min="1"
+            value={round ?? ''}
+            onChange={(e) => setRound(e.target.value)}
+            placeholder={t('roundPlaceholder', { max: maxRound })}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn-round-clear"
+          onClick={() => setRound('')}
+          disabled={!round}
+          title={t('noRoundGroupTitle')}
+        >
+          {t('noRoundGroupTitle')}
+        </button>
       </div>
 
       <div className="game-form-actions">

@@ -53,7 +53,11 @@ export async function loadDataFromSupabase(tournamentId) {
       awayScore: parseInt(game.awayScore) || 0,
       gameType: String(game.gameType || 'regular'),
       date: String(game.date || ''),
-      pending: game.pending === true
+      pending: game.pending === true,
+      // round может быть null/undefined для игр, созданных вручную
+      round: game.round === null || game.round === undefined || game.round === ''
+        ? null
+        : parseInt(game.round, 10) || null
     }))
 
     return { teams, games }
@@ -98,7 +102,11 @@ export async function saveDataToSupabase(teams, games, standings = [], tournamen
       awayScore: parseInt(game.awayScore) || 0,
       gameType: String(game.gameType || 'regular'),
       date: String(game.date || ''),
-      pending: game.pending === true
+      pending: game.pending === true,
+      // round сохраняем как число или null
+      round: game.round === null || game.round === undefined || game.round === ''
+        ? null
+        : parseInt(game.round, 10) || null
     }))
 
     // Стратегия сохранения: удаляем все существующие данные и вставляем новые

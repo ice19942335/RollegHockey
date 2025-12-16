@@ -13,6 +13,10 @@ function GameCard({ game, homeTeam, awayTeam, onDelete }) {
 
   const homeTeamColor = homeTeam?.color || '#FFA000'
   const awayTeamColor = awayTeam?.color || '#FFA000'
+  const round =
+    game?.round === null || game?.round === undefined || game?.round === ''
+      ? null
+      : parseInt(game.round, 10) || null
 
   return (
     <div className="game-card">
@@ -43,6 +47,7 @@ function GameCard({ game, homeTeam, awayTeam, onDelete }) {
       </div>
       <div className="game-info">
         <span className="game-type-badge">{GAME_TYPE_LABELS[game.gameType]}</span>
+        {round && <span className="game-round-badge">{t('roundGroupTitle', { round })}</span>}
         <span className="game-date">{game.date}</span>
         <button 
           className="btn-delete-game-card"
