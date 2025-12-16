@@ -39,6 +39,7 @@ function TournamentView() {
   const [showDeleteTeamModal, setShowDeleteTeamModal] = useState(false)
   const [showDeleteAllTeamsModal, setShowDeleteAllTeamsModal] = useState(false)
   const [showDeletePendingGameModal, setShowDeletePendingGameModal] = useState(false)
+  const [showDeleteAllPendingGamesModal, setShowDeleteAllPendingGamesModal] = useState(false)
   const [pendingGameToDelete, setPendingGameToDelete] = useState(null)
   const [showDeleteGameModal, setShowDeleteGameModal] = useState(false)
   const [gameToDelete, setGameToDelete] = useState(null)
@@ -736,8 +737,15 @@ function TournamentView() {
     setPendingGameToDelete(null)
   }
 
-  // Обработчик удаления всех pending игр
-  const handleDeleteAllPendingGames = async () => {
+  // Обработчик открытия модального окна удаления всех pending игр
+  const handleDeleteAllPendingGames = () => {
+    setShowDeleteAllPendingGamesModal(true)
+  }
+
+  // Подтверждение удаления всех pending игр
+  const confirmDeleteAllPendingGames = async () => {
+    // Закрываем модальное окно подтверждения сразу после подтверждения
+    setShowDeleteAllPendingGamesModal(false)
     setIsDeletingAllPendingGames(true)
     try {
       // Загружаем свежие данные
@@ -776,6 +784,11 @@ function TournamentView() {
     } finally {
       setIsDeletingAllPendingGames(false)
     }
+  }
+
+  // Отмена удаления всех pending игр
+  const cancelDeleteAllPendingGames = () => {
+    setShowDeleteAllPendingGamesModal(false)
   }
 
   // Обработчик изменения счета pending игры
@@ -1193,12 +1206,9 @@ function TournamentView() {
                 <h2>{t('pendingGames')} ({pendingGames.length})</h2>
                 {pendingGames.length > 0 && (
                   <button
+                    type="button"
                     className={`btn-delete-all-pending-games ${isDeletingAllPendingGames ? 'btn-loading' : ''}`}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      handleDeleteAllPendingGames()
-                    }}
+                    onClick={handleDeleteAllPendingGames}
                     title={t('deleteAllPendingGames')}
                     disabled={isDeletingAllPendingGames}
                   >
@@ -1308,6 +1318,7 @@ function TournamentView() {
           onDeleteAllGames={handleDeleteAllGames}
           isDeletingAllGames={isDeletingAllGames}
         />
+      </main>
 
       <ConfirmModal
         isOpen={showConfirmModal}
@@ -1331,6 +1342,14 @@ function TournamentView() {
         onConfirm={() => pendingGameToDelete && handleDeletePendingGame(pendingGameToDelete.id)}
         title={t('deletePendingGameTitle')}
         message={t('deletePendingGameMessage')}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteAllPendingGamesModal}
+        onClose={cancelDeleteAllPendingGames}
+        onConfirm={confirmDeleteAllPendingGames}
+        title={t('deleteAllPendingGamesTitle')}
+        message={t('deleteAllPendingGamesMessage', { count: games.filter(g => g.pending === true).length })}
       />
 
       <ConfirmModal
@@ -1372,7 +1391,6 @@ function TournamentView() {
         relatedGames={relatedGamesToDelete}
         teams={teams}
       />
-      </main>
     </div>
   )
 }
