@@ -1,6 +1,88 @@
 // Supabase утилиты для работы с базой данных
 import { getSupabaseClient } from '../config/supabase'
 
+function normalizeTeamRow(team) {
+  if (!team) return null
+  return {
+    id: String(team.id),
+    name: String(team.name || ''),
+    logo: String(team.logo || '🏒'),
+    color: String(team.color || '#1e3c72')
+  }
+}
+
+function normalizeGameRow(game) {
+  if (!game) return null
+  return {
+    id: String(game.id),
+    homeTeamId: String(game.homeTeamId),
+    awayTeamId: String(game.awayTeamId),
+    homeScore: parseInt(game.homeScore) || 0,
+    awayScore: parseInt(game.awayScore) || 0,
+    gameType: String(game.gameType || 'regular'),
+    date: String(game.date || ''),
+    pending: game.pending === true,
+    round:
+      game.round === null || game.round === undefined || game.round === ''
+        ? null
+        : parseInt(game.round, 10) || null
+  }
+}
+
+/**
+ * Подписка на realtime изменения игр/команд турнира (Postgres Changes).
+ * Требует включенного Realtime для таблиц в Supabase.
+ *
+ * @param {string} tournamentId
+ * @param {{
+ *   onGameChange?: (payload: any) => void,
+ *   onTeamChange?: (payload: any) => void,
+ * }} handlers
+ * @returns {() => void} unsubscribe
+ */
+export function subscribeToTournamentRealtime(tournamentId, handlers = {}) {
+  if (!tournamentId) return () => {}
+  const supabase = getSupabaseClient()
+
+  const channel = supabase.channel(`tournament:${tournamentId}`)
+
+  channel.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'rolleg_games',
+      filter: `tournamentId=eq.${tournamentId}`
+    },
+    payload => {
+      handlers?.onGameChange?.(payload)
+    }
+  )
+
+  channel.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'rolleg_teams',
+      filter: `tournamentId=eq.${tournamentId}`
+    },
+    payload => {
+      handlers?.onTeamChange?.(payload)
+    }
+  )
+
+  channel.subscribe()
+
+  return () => {
+    try {
+      supabase.removeChannel(channel)
+    } catch (e) {
+      // no-op
+    }
+  }
+}
+
 /**
  * Загружает данные из Supabase для конкретного турнира
  * @param {string} tournamentId - ID турнира
@@ -38,27 +120,8 @@ export async function loadDataFromSupabase(tournamentId) {
     }
 
     // Преобразуем данные в нужный формат
-    const teams = (teamsResult.data || []).map(team => ({
-      id: String(team.id),
-      name: String(team.name || ''),
-      logo: String(team.logo || '🏒'),
-      color: String(team.color || '#1e3c72')
-    }))
-
-    const games = (gamesResult.data || []).map(game => ({
-      id: String(game.id),
-      homeTeamId: String(game.homeTeamId),
-      awayTeamId: String(game.awayTeamId),
-      homeScore: parseInt(game.homeScore) || 0,
-      awayScore: parseInt(game.awayScore) || 0,
-      gameType: String(game.gameType || 'regular'),
-      date: String(game.date || ''),
-      pending: game.pending === true,
-      // round может быть null/undefined для игр, созданных вручную
-      round: game.round === null || game.round === undefined || game.round === ''
-        ? null
-        : parseInt(game.round, 10) || null
-    }))
+    const teams = (teamsResult.data || []).map(normalizeTeamRow).filter(Boolean)
+    const games = (gamesResult.data || []).map(normalizeGameRow).filter(Boolean)
 
     return { teams, games }
   } catch (error) {
@@ -425,5 +488,310 @@ export async function deleteTournament(tournamentId) {
       success: false, 
       error: error.message || 'Неизвестная ошибка' 
     }
+  }
+}
+
+// ============================
+// Targeted operations (no bulk delete+insert)
+// ============================
+
+export async function upsertTeamInSupabase(team, tournamentId) {
+  try {
+    if (!tournamentId) return { data: null, error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const payload = {
+      id: String(team.id),
+      tournamentId: String(tournamentId),
+      name: String(team.name || ''),
+      logo: String(team.logo || '🏒'),
+      color: String(team.color || '#1e3c72')
+    }
+
+    const { data, error } = await supabase
+      .from('rolleg_teams')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+      .single()
+
+    return { data: normalizeTeamRow(data), error }
+  } catch (error) {
+    return { data: null, error }
+  }
+}
+
+export async function upsertTeamsInSupabase(teams, tournamentId) {
+  try {
+    if (!tournamentId) return { data: [], error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const payload = (teams || []).map(team => ({
+      id: String(team.id),
+      tournamentId: String(tournamentId),
+      name: String(team.name || ''),
+      logo: String(team.logo || '🏒'),
+      color: String(team.color || '#1e3c72')
+    }))
+
+    if (payload.length === 0) return { data: [], error: null }
+
+    const { data, error } = await supabase
+      .from('rolleg_teams')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+
+    return { data: (data || []).map(normalizeTeamRow).filter(Boolean), error }
+  } catch (error) {
+    return { data: [], error }
+  }
+}
+
+export async function updateTeamNameInSupabase(teamId, tournamentId, name) {
+  try {
+    if (!tournamentId) return { data: null, error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase
+      .from('rolleg_teams')
+      .update({ name: String(name || '') })
+      .eq('id', String(teamId))
+      .eq('tournamentId', String(tournamentId))
+      .select('*')
+      .single()
+
+    return { data: normalizeTeamRow(data), error }
+  } catch (error) {
+    return { data: null, error }
+  }
+}
+
+export async function deleteTeamInSupabase(teamId, tournamentId) {
+  try {
+    if (!tournamentId) return { error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const { error } = await supabase
+      .from('rolleg_teams')
+      .delete()
+      .eq('id', String(teamId))
+      .eq('tournamentId', String(tournamentId))
+
+    return { error }
+  } catch (error) {
+    return { error }
+  }
+}
+
+export async function deleteAllTeamsInSupabase(tournamentId) {
+  try {
+    if (!tournamentId) return { error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const { error } = await supabase
+      .from('rolleg_teams')
+      .delete()
+      .eq('tournamentId', String(tournamentId))
+    return { error }
+  } catch (error) {
+    return { error }
+  }
+}
+
+export async function upsertGameInSupabase(game, tournamentId) {
+  try {
+    if (!tournamentId) return { data: null, error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const payload = {
+      id: String(game.id),
+      tournamentId: String(tournamentId),
+      homeTeamId: String(game.homeTeamId),
+      awayTeamId: String(game.awayTeamId),
+      homeScore: parseInt(game.homeScore) || 0,
+      awayScore: parseInt(game.awayScore) || 0,
+      gameType: String(game.gameType || 'regular'),
+      date: String(game.date || ''),
+      pending: game.pending === true,
+      round:
+        game.round === null || game.round === undefined || game.round === ''
+          ? null
+          : parseInt(game.round, 10) || null
+    }
+
+    const { data, error } = await supabase
+      .from('rolleg_games')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+      .single()
+
+    return { data: normalizeGameRow(data), error }
+  } catch (error) {
+    return { data: null, error }
+  }
+}
+
+export async function upsertGamesInSupabase(games, tournamentId) {
+  try {
+    if (!tournamentId) return { data: [], error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const payload = (games || []).map(game => ({
+      id: String(game.id),
+      tournamentId: String(tournamentId),
+      homeTeamId: String(game.homeTeamId),
+      awayTeamId: String(game.awayTeamId),
+      homeScore: parseInt(game.homeScore) || 0,
+      awayScore: parseInt(game.awayScore) || 0,
+      gameType: String(game.gameType || 'regular'),
+      date: String(game.date || ''),
+      pending: game.pending === true,
+      round:
+        game.round === null || game.round === undefined || game.round === ''
+          ? null
+          : parseInt(game.round, 10) || null
+    }))
+
+    if (payload.length === 0) return { data: [], error: null }
+
+    const { data, error } = await supabase
+      .from('rolleg_games')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+
+    return { data: (data || []).map(normalizeGameRow).filter(Boolean), error }
+  } catch (error) {
+    return { data: [], error }
+  }
+}
+
+export async function deleteGameInSupabase(gameId, tournamentId) {
+  try {
+    if (!tournamentId) return { error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const { error } = await supabase
+      .from('rolleg_games')
+      .delete()
+      .eq('id', String(gameId))
+      .eq('tournamentId', String(tournamentId))
+    return { error }
+  } catch (error) {
+    return { error }
+  }
+}
+
+export async function deleteGamesByPendingInSupabase(tournamentId, pending) {
+  try {
+    if (!tournamentId) return { error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const { error } = await supabase
+      .from('rolleg_games')
+      .delete()
+      .eq('tournamentId', String(tournamentId))
+      .eq('pending', pending === true)
+    return { error }
+  } catch (error) {
+    return { error }
+  }
+}
+
+export async function deleteNonPendingGamesInSupabase(tournamentId) {
+  return deleteGamesByPendingInSupabase(tournamentId, false)
+}
+
+export async function updateGamePendingInSupabase(gameId, tournamentId, pending) {
+  try {
+    if (!tournamentId) return { data: null, error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase
+      .from('rolleg_games')
+      .update({ pending: pending === true })
+      .eq('id', String(gameId))
+      .eq('tournamentId', String(tournamentId))
+      .select('*')
+      .single()
+    return { data: normalizeGameRow(data), error }
+  } catch (error) {
+    return { data: null, error }
+  }
+}
+
+/**
+ * CAS update of one side score: prevents lost updates in concurrent clients.
+ * If the expected score mismatches, it returns latest row (best-effort).
+ */
+export async function updateGameScoreDeltaInSupabase({
+  gameId,
+  tournamentId,
+  side,
+  delta,
+  expectedHomeScore,
+  expectedAwayScore
+}) {
+  try {
+    if (!tournamentId) return { data: null, error: new Error('tournamentId is required') }
+    const supabase = getSupabaseClient()
+
+    const deltaInt = parseInt(delta) || 0
+    const expectedHome = parseInt(expectedHomeScore) || 0
+    const expectedAway = parseInt(expectedAwayScore) || 0
+
+    const isHome = side === 'home'
+    const isAway = side === 'away'
+    if (!isHome && !isAway) {
+      return { data: null, error: new Error('side must be \"home\" or \"away\"') }
+    }
+
+    // Prefer RPC: atomic update (no lost increments)
+    // Requires running the SQL in supabase-migration.sql (function public.rolleg_increment_game_score)
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('rolleg_increment_game_score', {
+        p_game_id: String(gameId),
+        p_tournament_id: String(tournamentId),
+        p_side: side,
+        p_delta: deltaInt
+      })
+
+      if (!rpcError) {
+        const row = Array.isArray(rpcData) ? rpcData[0] : rpcData
+        if (row) {
+          return { data: normalizeGameRow(row), error: null, conflict: false, via: 'rpc' }
+        }
+      }
+      // If function is missing/not deployed yet, fall back to CAS below.
+      // Otherwise, surface the error.
+      const rpcMessage = String(rpcError?.message || '')
+      const rpcCode = String(rpcError?.code || '')
+      const fnMissing =
+        rpcCode === 'PGRST202' ||
+        rpcMessage.toLowerCase().includes('could not find the function') ||
+        rpcMessage.toLowerCase().includes('function') && rpcMessage.toLowerCase().includes('does not exist')
+      if (!fnMissing) {
+        return { data: null, error: rpcError, conflict: false, via: 'rpc' }
+      }
+    } catch (e) {
+      // ignore and fall back
+    }
+
+    const nextValue = isHome ? Math.max(0, expectedHome + deltaInt) : Math.max(0, expectedAway + deltaInt)
+    const field = isHome ? 'homeScore' : 'awayScore'
+    const expectedValue = isHome ? expectedHome : expectedAway
+
+    let q = supabase
+      .from('rolleg_games')
+      .update({ [field]: nextValue })
+      .eq('id', String(gameId))
+      .eq('tournamentId', String(tournamentId))
+      .eq(field, expectedValue)
+
+    const { data, error } = await q.select('*')
+    if (error) return { data: null, error }
+
+    if (!data || data.length === 0) {
+      // conflict: fetch latest
+      const { data: latest, error: fetchError } = await supabase
+        .from('rolleg_games')
+        .select('*')
+        .eq('id', String(gameId))
+        .eq('tournamentId', String(tournamentId))
+        .single()
+      return { data: normalizeGameRow(latest), error: fetchError || null, conflict: true }
+    }
+
+    return { data: normalizeGameRow(data[0]), error: null, conflict: false }
+  } catch (error) {
+    return { data: null, error }
   }
 }

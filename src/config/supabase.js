@@ -12,12 +12,16 @@ export const IS_DEV_MODE = false
 // You can set this via environment variable: VITE_ADMIN_ENABLED=true
 export const IS_ADMIN_ENABLED = import.meta.env.VITE_ADMIN_ENABLED === 'true' || false
 
+// IMPORTANT: create ONE Supabase client for the whole app.
+// Realtime uses WebSocket connections; creating a new client per call will create multiple sockets.
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
 /**
  * Creates and returns a Supabase client instance
  * @returns {import('@supabase/supabase-js').SupabaseClient}
  */
 export function getSupabaseClient() {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  return supabaseClient
 }
 
 /**

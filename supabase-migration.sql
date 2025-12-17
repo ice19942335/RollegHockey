@@ -62,6 +62,11 @@ ALTER TABLE public.rolleg_tournaments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rolleg_teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rolleg_games ENABLE ROW LEVEL SECURITY;
 
+-- 5.1 Realtime: чтобы DELETE-события содержали старую строку (нужно для фильтрации по tournamentId)
+-- Без этого удаление команды может не приходить в подписку с filter: tournamentId=eq.<id>
+ALTER TABLE public.rolleg_teams REPLICA IDENTITY FULL;
+ALTER TABLE public.rolleg_games REPLICA IDENTITY FULL;
+
 -- 6. Создание RLS политик для публичного доступа (anon)
 -- Политики для rolleg_tournaments
 CREATE POLICY "Allow public SELECT on rolleg_tournaments" 
@@ -128,3 +133,65 @@ CREATE POLICY "Allow public DELETE on rolleg_games"
     ON public.rolleg_games FOR DELETE 
     TO anon 
     USING (true);
+
+-- 7. RPC: атомарное изменение счёта (Realtime-friendly)
+-- Использовать через supabase.rpc('rolleg_increment_game_score', ...)
+CREATE OR REPLACE FUNCTION public.rolleg_increment_game_score(
+    p_game_id TEXT,
+    p_tournament_id TEXT,
+    p_side TEXT,
+    p_delta INTEGER
+)
+RETURNS TABLE (
+    id TEXT,
+    "tournamentId" TEXT,
+    "homeTeamId" TEXT,
+    "awayTeamId" TEXT,
+    "homeScore" INTEGER,
+    "awayScore" INTEGER,
+    "gameType" TEXT,
+    round INTEGER,
+    date TEXT,
+    pending BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
+BEGIN
+    IF p_side IS NULL OR p_side NOT IN ('home', 'away') THEN
+        RAISE EXCEPTION 'p_side must be ''home'' or ''away''' USING ERRCODE = '22023';
+    END IF;
+
+    IF p_delta IS NULL THEN
+        p_delta := 0;
+    END IF;
+
+    RETURN QUERY
+    UPDATE public.rolleg_games g
+    SET
+        "homeScore" = CASE
+            WHEN p_side = 'home' THEN GREATEST(0, COALESCE(g."homeScore", 0) + p_delta)
+            ELSE g."homeScore"
+        END,
+        "awayScore" = CASE
+            WHEN p_side = 'away' THEN GREATEST(0, COALESCE(g."awayScore", 0) + p_delta)
+            ELSE g."awayScore"
+        END
+    WHERE g.id = p_game_id
+      AND g."tournamentId" = p_tournament_id
+    RETURNING
+        g.id,
+        g."tournamentId",
+        g."homeTeamId",
+        g."awayTeamId",
+        g."homeScore",
+        g."awayScore",
+        g."gameType",
+        g.round,
+        g.date,
+        g.pending;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.rolleg_increment_game_score(TEXT, TEXT, TEXT, INTEGER) TO anon;
+GRANT EXECUTE ON FUNCTION public.rolleg_increment_game_score(TEXT, TEXT, TEXT, INTEGER) TO authenticated;

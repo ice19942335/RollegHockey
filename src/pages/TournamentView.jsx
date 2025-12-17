@@ -14,8 +14,23 @@ import ConfirmModal from '../components/ConfirmModal'
 import MissingTeamModal from '../components/MissingTeamModal'
 import DeleteTeamModal from '../components/DeleteTeamModal'
 import Notification from '../components/Notification'
-import { loadDataFromSupabase, saveDataToSupabase, loadTournamentsList } from '../utils/supabase'
-import { calculateStandings } from '../utils/calculateStats'
+import {
+  loadDataFromSupabase,
+  loadTournamentsList,
+  subscribeToTournamentRealtime,
+  upsertTeamInSupabase,
+  upsertTeamsInSupabase,
+  updateTeamNameInSupabase,
+  deleteTeamInSupabase,
+  deleteAllTeamsInSupabase,
+  upsertGameInSupabase,
+  upsertGamesInSupabase,
+  deleteGameInSupabase,
+  deleteGamesByPendingInSupabase,
+  deleteNonPendingGamesInSupabase,
+  updateGamePendingInSupabase,
+  updateGameScoreDeltaInSupabase
+} from '../utils/supabase'
 
 function TournamentView() {
   const { id: tournamentId } = useParams()
@@ -24,6 +39,7 @@ function TournamentView() {
   const { t, language } = useLanguage()
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
+  const gamesSnapshotRef = useRef([])
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamLogo, setNewTeamLogo] = useState('🏒')
   const [newTeamColor, setNewTeamColor] = useState('#1e3c72')
@@ -69,11 +85,7 @@ function TournamentView() {
   const [isRoundGeneratorExpanded, setIsRoundGeneratorExpanded] = useState(true)
   const [isAddGameSectionExpanded, setIsAddGameSectionExpanded] = useState(true)
   const hasSetInitialCollapseRef = useRef(false)
-  const isInitialLoadRef = useRef(true)
-  const previousDataRef = useRef({ teams: [], games: [] })
   const hasLoadedRef = useRef(false)
-  const isAddingGameRef = useRef(false)
-  const isUpdatingScoreRef = useRef(false)
   const [tournamentNotFound, setTournamentNotFound] = useState(false)
   const [tournamentName, setTournamentName] = useState('')
   const [tournamentDescription, setTournamentDescription] = useState('')
@@ -88,10 +100,6 @@ function TournamentView() {
       if (data.teams.length > 0 || data.games.length > 0) {
         setTeams(data.teams)
         setGames(data.games)
-        previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(data.teams)),
-          games: JSON.parse(JSON.stringify(data.games))
-        }
         setTournamentNotFound(false)
       } else {
         // Если данных нет, возможно турнир не существует
@@ -106,7 +114,6 @@ function TournamentView() {
     } finally {
       if (showLoading) {
         setIsLoading(false)
-        isInitialLoadRef.current = false
       }
     }
   }
@@ -171,32 +178,84 @@ function TournamentView() {
     setNotification({ message, type })
   }
 
-  // Автосохранение при изменении teams или games (без UI индикации)
+  // Keep latest games snapshot for fast sequential clicks (before React re-render)
   useEffect(() => {
-    if (isLoading || isInitialLoadRef.current) return
-    if (isAddingGameRef.current) return
-    
-    const currentDataStr = JSON.stringify({ teams, games })
-    const previousDataStr = JSON.stringify(previousDataRef.current)
-    
-    if (currentDataStr === previousDataStr) return
-    
-    previousDataRef.current = {
-      teams: JSON.parse(JSON.stringify(teams)),
-      games: JSON.parse(JSON.stringify(games))
-    }
-    
-    const saveData = async () => {
-      try {
-        const standings = calculateStandings(teams, games)
-        await saveDataToSupabase(teams, games, standings, tournamentId)
-      } catch (error) {
-        console.error('Ошибка сохранения данных:', error)
+    gamesSnapshotRef.current = games
+  }, [games])
+
+  // Realtime: автоматически подтягиваем изменения игр/команд турнира
+  useEffect(() => {
+    if (!tournamentId) return
+
+    const normalizeTeam = (team) => {
+      if (!team) return null
+      return {
+        id: String(team.id),
+        name: String(team.name || ''),
+        logo: String(team.logo || '🏒'),
+        color: String(team.color || '#1e3c72')
       }
     }
-    
-    saveData()
-  }, [teams, games, isLoading, tournamentId])
+
+    const normalizeGame = (game) => {
+      if (!game) return null
+      return {
+        id: String(game.id),
+        homeTeamId: String(game.homeTeamId),
+        awayTeamId: String(game.awayTeamId),
+        homeScore: parseInt(game.homeScore) || 0,
+        awayScore: parseInt(game.awayScore) || 0,
+        gameType: String(game.gameType || 'regular'),
+        date: String(game.date || ''),
+        pending: game.pending === true,
+        round:
+          game.round === null || game.round === undefined || game.round === ''
+            ? null
+            : parseInt(game.round, 10) || null
+      }
+    }
+
+    const upsertById = (items, item) => {
+      const idx = items.findIndex(x => String(x.id) === String(item.id))
+      if (idx === -1) return [...items, item]
+      const next = [...items]
+      next[idx] = { ...next[idx], ...item }
+      return next
+    }
+
+    const unsubscribe = subscribeToTournamentRealtime(tournamentId, {
+      onGameChange: payload => {
+        const eventType = payload?.eventType
+        if (eventType === 'DELETE') {
+          const id = payload?.old?.id
+          if (!id) return
+          setGames(prev => prev.filter(g => String(g.id) !== String(id)))
+          return
+        }
+
+        const game = normalizeGame(payload?.new)
+        if (!game?.id) return
+        setGames(prev => upsertById(prev, game))
+      },
+      onTeamChange: payload => {
+        const eventType = payload?.eventType
+        if (eventType === 'DELETE') {
+          const id = payload?.old?.id
+          if (!id) return
+          setTeams(prev => prev.filter(t => String(t.id) !== String(id)))
+          return
+        }
+
+        const team = normalizeTeam(payload?.new)
+        if (!team?.id) return
+        setTeams(prev => upsertById(prev, team))
+      }
+    })
+
+    return () => {
+      unsubscribe?.()
+    }
+  }, [tournamentId])
 
   const addTeam = async () => {
     if (newTeamName.trim() && !teams.find(t => t.name === newTeamName.trim())) {
@@ -209,18 +268,16 @@ function TournamentView() {
           logo: newTeamLogo.trim() || '🏒',
           color: newTeamColor || '#1e3c72'
         }
-        const updatedTeams = [...teams, newTeam]
-        setTeams(updatedTeams)
-        
-        // Обновляем previousDataRef для автосохранения
-        previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(updatedTeams)),
-          games: JSON.parse(JSON.stringify(games))
+        // Optimistic UI update
+        setTeams(prev => [...prev, newTeam])
+
+        const { error } = await upsertTeamInSupabase(newTeam, tournamentId)
+        if (error) {
+          // rollback
+          setTeams(prev => prev.filter(t => String(t.id) !== String(newTeam.id)))
+          throw error
         }
-        
-        // Явно сохраняем в Supabase
-        const standings = calculateStandings(updatedTeams, games)
-        await saveDataToSupabase(updatedTeams, games, standings, tournamentId)
+
         showNotification('Команда добавлена ✓', 'success')
         
         setNewTeamName('')
@@ -237,14 +294,12 @@ function TournamentView() {
 
   const handleGeneratingStart = () => {
     // Устанавливаем состояние загрузки для генерации
-    isAddingGameRef.current = true
     setIsGeneratingTeams(true)
   }
 
   const handleGenerateTeams = async (generatedTeams) => {
     if (!generatedTeams || generatedTeams.length === 0) {
       setIsGeneratingTeams(false)
-      isAddingGameRef.current = false
       return
     }
 
@@ -256,18 +311,17 @@ function TournamentView() {
       )
 
       if (uniqueTeams.length > 0) {
-        const updatedTeams = [...teams, ...uniqueTeams]
-        setTeams(updatedTeams)
+        // Optimistic UI update
+        setTeams(prev => [...prev, ...uniqueTeams])
 
-        // Обновляем previousDataRef
-        previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(updatedTeams)),
-          games: JSON.parse(JSON.stringify(games))
+        const { error } = await upsertTeamsInSupabase(uniqueTeams, tournamentId)
+        if (error) {
+          // best-effort rollback
+          const ids = new Set(uniqueTeams.map(t => String(t.id)))
+          setTeams(prev => prev.filter(t => !ids.has(String(t.id))))
+          throw error
         }
 
-        // Сохраняем в Supabase
-        const standings = calculateStandings(updatedTeams, games)
-        await saveDataToSupabase(updatedTeams, games, standings, tournamentId)
         showNotification(`Добавлено команд: ${uniqueTeams.length} ✓`, 'success')
       } else {
         showNotification('Все команды уже существуют', 'error')
@@ -277,10 +331,6 @@ function TournamentView() {
       showNotification('Ошибка сохранения команд', 'error')
     } finally {
       setIsGeneratingTeams(false)
-      // Сбрасываем флаг после небольшой задержки
-      setTimeout(() => {
-        isAddingGameRef.current = false
-      }, 100)
     }
   }
 
@@ -308,21 +358,22 @@ function TournamentView() {
     setShowDeleteTeamModal(false)
     
     try {
-      const updatedTeams = teams.filter(t => String(t.id) !== String(id))
-      const updatedGames = games.filter(g => String(g.homeTeamId) !== String(id) && String(g.awayTeamId) !== String(id))
-      
+      const prevTeams = teams
+      const prevGames = games
+
+      // Optimistic UI update
+      const updatedTeams = prevTeams.filter(t => String(t.id) !== String(id))
+      const updatedGames = prevGames.filter(g => String(g.homeTeamId) !== String(id) && String(g.awayTeamId) !== String(id))
       setTeams(updatedTeams)
       setGames(updatedGames)
-      
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(updatedTeams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
+
+      const { error } = await deleteTeamInSupabase(id, tournamentId)
+      if (error) {
+        // rollback by reloading (best effort)
+        await loadData(false)
+        throw error
       }
-      
-      // Сохраняем в Supabase
-      const standings = calculateStandings(updatedTeams, updatedGames)
-      await saveDataToSupabase(updatedTeams, updatedGames, standings, tournamentId)
+
       showNotification('Команда удалена ✓', 'success')
     } catch (error) {
       console.error('Ошибка при удалении команды:', error)
@@ -340,177 +391,94 @@ function TournamentView() {
     setRelatedGamesToDelete([])
   }
 
-  const updateTeamName = (id, newName) => {
-    if (newName.trim() && !teams.find(t => t.id !== id && t.name === newName.trim())) {
-      setTeams(teams.map(team => 
-        team.id === id ? { ...team, name: newName.trim() } : team
-      ))
+  const updateTeamName = async (id, newName) => {
+    const trimmed = (newName || '').trim()
+    if (!trimmed) return
+    if (teams.find(t => t.id !== id && t.name === trimmed)) return
+
+    // Optimistic UI update
+    setTeams(prev => prev.map(team => (team.id === id ? { ...team, name: trimmed } : team)))
+
+    const { error } = await updateTeamNameInSupabase(id, tournamentId, trimmed)
+    if (error) {
+      console.error('Ошибка сохранения имени команды:', error)
+      showNotification('Ошибка сохранения имени команды', 'error')
+      // best-effort resync
+      await loadData(false)
     }
   }
 
   const addGame = async () => {
-    if (selectedHomeTeam && selectedAwayTeam && 
-        selectedHomeTeam !== selectedAwayTeam &&
-        homeScore !== '' && awayScore !== '' &&
-        parseInt(homeScore) >= 0 && parseInt(awayScore) >= 0) {
-      
-      isAddingGameRef.current = true
-      setIsAddingGame(true)
+    if (
+      !selectedHomeTeam ||
+      !selectedAwayTeam ||
+      selectedHomeTeam === selectedAwayTeam ||
+      homeScore === '' ||
+      awayScore === '' ||
+      parseInt(homeScore) < 0 ||
+      parseInt(awayScore) < 0
+    ) {
+      return
+    }
 
-      const roundValue =
-        selectedRound === null || selectedRound === undefined || selectedRound === ''
-          ? null
-          : Math.max(1, parseInt(selectedRound, 10) || 0) || null
-      
-      try {
-        const freshData = await loadData(false)
-        
-        const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
-        const homeTeamFound = currentTeams.find(t => String(t.id) === String(selectedHomeTeam))
-        const awayTeamFound = currentTeams.find(t => String(t.id) === String(selectedAwayTeam))
-        
-        const missingTeamsList = []
-        if (!homeTeamFound) {
-          const homeTeam = teams.find(t => String(t.id) === String(selectedHomeTeam))
-          if (homeTeam) {
-            missingTeamsList.push(homeTeam)
-          }
-        }
-        if (!awayTeamFound) {
-          const awayTeam = teams.find(t => String(t.id) === String(selectedAwayTeam))
-          if (awayTeam) {
-            missingTeamsList.push(awayTeam)
-          }
-        }
-        
-        if (missingTeamsList.length > 0) {
-          setIsAddingGame(false)
-          
-          const homeScoreInt = parseInt(homeScore)
-          const awayScoreInt = parseInt(awayScore)
-          
-          setPendingGameData({
-            homeTeamId: String(selectedHomeTeam),
-            awayTeamId: String(selectedAwayTeam),
-            homeScore: homeScoreInt,
-            awayScore: awayScoreInt,
-            gameType: gameType,
-            round: roundValue,
-            freshData: freshData,
-            currentTeams: currentTeams
-          })
-          
-          setMissingTeams(missingTeamsList)
-          setShowMissingTeamModal(true)
-          isAddingGameRef.current = false
-          return
-        }
-        
-        const homeScoreInt = parseInt(homeScore)
-        const awayScoreInt = parseInt(awayScore)
-        
-        const currentGames = freshData.games.length > 0 ? freshData.games : games
-        
-        let newGameId
-        do {
-          newGameId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        } while (currentGames.some(game => game.id === newGameId))
-        
-        const newGame = {
-          id: newGameId,
-          homeTeamId: String(selectedHomeTeam),
-          awayTeamId: String(selectedAwayTeam),
-          homeScore: homeScoreInt,
-          awayScore: awayScoreInt,
-          gameType: gameType,
-          round: roundValue,
-          pending: true,
-          date: new Date().toLocaleString('ru-RU', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
-          })
-        }
-        
-        const updatedGames = [...currentGames, newGame]
-        
-        setGames(updatedGames)
-        if (freshData.teams.length > 0) {
-          setTeams(currentTeams)
-        }
-        
-        previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(currentTeams)),
-          games: JSON.parse(JSON.stringify(updatedGames))
-        }
-        
-        const standings = calculateStandings(currentTeams, updatedGames)
-        await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
-        showNotification('Игра добавлена ✓', 'success')
-        
-        setSelectedHomeTeam('')
-        setSelectedAwayTeam('')
-        setHomeScore('0')
-        setAwayScore('0')
-        setGameType('regular')
-        setSelectedRound('')
-      } catch (error) {
-        console.error('Ошибка при синхронизации перед добавлением игры:', error)
-        const homeScoreInt = parseInt(homeScore)
-        const awayScoreInt = parseInt(awayScore)
-        
-        let newGameId
-        do {
-          newGameId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        } while (games.some(game => game.id === newGameId))
-        
-        const newGame = {
-          id: newGameId,
-          homeTeamId: String(selectedHomeTeam),
-          awayTeamId: String(selectedAwayTeam),
-          homeScore: homeScoreInt,
-          awayScore: awayScoreInt,
-          gameType: gameType,
-          round: roundValue,
-          pending: true,
-          date: new Date().toLocaleString('ru-RU', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
-          })
-        }
-        
-        const updatedGames = [...games, newGame]
-        setGames(updatedGames)
-        
-        previousDataRef.current = {
-          teams: JSON.parse(JSON.stringify(teams)),
-          games: JSON.parse(JSON.stringify(updatedGames))
-        }
-        
-        try {
-          const standings = calculateStandings(teams, updatedGames)
-          await saveDataToSupabase(teams, updatedGames, standings, tournamentId)
-        } catch (saveError) {
-          console.error('Ошибка сохранения данных:', saveError)
-        }
-        
-        setSelectedHomeTeam('')
-        setSelectedAwayTeam('')
-        setHomeScore('0')
-        setAwayScore('0')
-        setGameType('regular')
-        setSelectedRound('')
-      } finally {
-        isAddingGameRef.current = false
-        setIsAddingGame(false)
+    setIsAddingGame(true)
+
+    const roundValue =
+      selectedRound === null || selectedRound === undefined || selectedRound === ''
+        ? null
+        : Math.max(1, parseInt(selectedRound, 10) || 0) || null
+
+    const homeScoreInt = parseInt(homeScore) || 0
+    const awayScoreInt = parseInt(awayScore) || 0
+
+    let newGameId
+    do {
+      newGameId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    } while (games.some(game => game.id === newGameId))
+
+    const newGame = {
+      id: newGameId,
+      homeTeamId: String(selectedHomeTeam),
+      awayTeamId: String(selectedAwayTeam),
+      homeScore: homeScoreInt,
+      awayScore: awayScoreInt,
+      gameType: gameType,
+      round: roundValue,
+      pending: true,
+      date: new Date().toLocaleString('ru-RU', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })
+    }
+
+    try {
+      // Optimistic UI update
+      setGames(prev => [...prev, newGame])
+
+      const { error } = await upsertGameInSupabase(newGame, tournamentId)
+      if (error) {
+        // rollback
+        setGames(prev => prev.filter(g => String(g.id) !== String(newGame.id)))
+        throw error
       }
+
+      showNotification('Игра добавлена ✓', 'success')
+
+      setSelectedHomeTeam('')
+      setSelectedAwayTeam('')
+      setHomeScore('0')
+      setAwayScore('0')
+      setGameType('regular')
+      setSelectedRound('')
+    } catch (error) {
+      console.error('Ошибка добавления игры:', error)
+      showNotification('Ошибка сохранения игры', 'error')
+    } finally {
+      setIsAddingGame(false)
     }
   }
   
@@ -521,54 +489,53 @@ function TournamentView() {
     setShowMissingTeamModal(false)
     
     try {
-      const updatedTeams = [...pendingGameData.currentTeams]
-      
-      for (const missingTeam of missingTeams) {
-        const existingTeam = updatedTeams.find(t => String(t.id) === String(missingTeam.id))
-        if (!existingTeam) {
-          const newTeam = {
-            id: String(missingTeam.id),
-            name: missingTeam.name,
-            logo: missingTeam.logo || '🏒',
-            color: missingTeam.color || '#1e3c72'
-          }
-          updatedTeams.push(newTeam)
-        }
+      // 1) Ensure missing teams exist in DB
+      const teamsToUpsert = (missingTeams || []).map(mt => ({
+        id: String(mt.id),
+        name: mt.name,
+        logo: mt.logo || '🏒',
+        color: mt.color || '#1e3c72'
+      }))
+
+      if (teamsToUpsert.length > 0) {
+        const { error: teamsError } = await upsertTeamsInSupabase(teamsToUpsert, tournamentId)
+        if (teamsError) throw teamsError
+
+        // Optimistic local merge (realtime will also sync)
+        setTeams(prev => {
+          const byId = new Map(prev.map(t => [String(t.id), t]))
+          for (const t of teamsToUpsert) byId.set(String(t.id), t)
+          return Array.from(byId.values())
+        })
       }
-      
-      const currentGames = pendingGameData.freshData.games.length > 0 
-        ? pendingGameData.freshData.games 
-        : games
-      
+
+      // 2) Create game
       let newGameId
       do {
-        newGameId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      } while (currentGames.some(game => game.id === newGameId))
-      
+        newGameId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      } while (games.some(game => game.id === newGameId))
+
       const newGame = {
         id: newGameId,
-        homeTeamId: pendingGameData.homeTeamId,
-        awayTeamId: pendingGameData.awayTeamId,
-        homeScore: pendingGameData.homeScore,
-        awayScore: pendingGameData.awayScore,
-        gameType: pendingGameData.gameType,
+        homeTeamId: String(pendingGameData.homeTeamId),
+        awayTeamId: String(pendingGameData.awayTeamId),
+        homeScore: parseInt(pendingGameData.homeScore) || 0,
+        awayScore: parseInt(pendingGameData.awayScore) || 0,
+        gameType: pendingGameData.gameType || 'regular',
         round: pendingGameData.round ?? null,
         pending: true,
         date: new Date().toLocaleDateString('ru-RU')
       }
-      
-      const updatedGames = [...currentGames, newGame]
-      
-      setTeams(updatedTeams)
-      setGames(updatedGames)
-      
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(updatedTeams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
+
+      // Optimistic UI update
+      setGames(prev => [...prev, newGame])
+
+      const { error: gameError } = await upsertGameInSupabase(newGame, tournamentId)
+      if (gameError) {
+        setGames(prev => prev.filter(g => String(g.id) !== String(newGameId)))
+        throw gameError
       }
-      
-      const standings = calculateStandings(updatedTeams, updatedGames)
-      await saveDataToSupabase(updatedTeams, updatedGames, standings, tournamentId)
+
       showNotification('Игра добавлена ✓', 'success')
       
       setSelectedHomeTeam('')
@@ -585,7 +552,6 @@ function TournamentView() {
       showNotification('Ошибка сохранения игры', 'error')
     } finally {
       setIsAddingGame(false)
-      isAddingGameRef.current = false
     }
   }
   
@@ -593,36 +559,23 @@ function TournamentView() {
     setShowMissingTeamModal(false)
     setPendingGameData(null)
     setMissingTeams([])
-    isAddingGameRef.current = false
     setIsAddingGame(false)
   }
 
   // Обработчик генерации игр из TournamentRoundGenerator
   const handleGamesGenerated = async (newGames) => {
     try {
-      // Загружаем свежие данные
-      const freshData = await loadData(false)
-      const currentGames = freshData.games.length > 0 ? freshData.games : games
-      
-      // Объединяем существующие игры с новыми
-      const updatedGames = [...currentGames, ...newGames]
-      
-      // Обновляем состояние
-      setGames(updatedGames)
-      if (freshData.teams.length > 0) {
-        setTeams(freshData.teams)
+      if (!newGames || newGames.length === 0) return
+
+      // Optimistic UI update
+      setGames(prev => [...prev, ...newGames])
+
+      const { error } = await upsertGamesInSupabase(newGames, tournamentId)
+      if (error) {
+        const ids = new Set(newGames.map(g => String(g.id)))
+        setGames(prev => prev.filter(g => !ids.has(String(g.id))))
+        throw error
       }
-      
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
-      }
-      
-      // Сохраняем в Supabase
-      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
-      const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
     } catch (error) {
       console.error('Ошибка при сохранении сгенерированных игр:', error)
       throw error
@@ -641,58 +594,27 @@ function TournamentView() {
     setShowApproveGameModal(false)
     setPendingGameToApprove(null)
     
-    setIsApprovingGame({ [gameId]: true })
+    setIsApprovingGame(prev => ({ ...prev, [gameId]: true }))
     try {
-      // Сначала находим игру в локальном состоянии, чтобы сохранить актуальный счет
-      const localGame = games.find(g => g.id === gameId)
-      if (!localGame) {
-        console.error('Игра не найдена в локальном состоянии')
-        setIsSaving(false)
-        return
+      // Optimistic UI update
+      setGames(prev => prev.map(g => (g.id === gameId ? { ...g, pending: false } : g)))
+
+      const { error } = await updateGamePendingInSupabase(gameId, tournamentId, false)
+      if (error) {
+        // best-effort resync
+        await loadData(false)
+        throw error
       }
-      
-      // Загружаем свежие данные для синхронизации
-      const freshData = await loadData(false)
-      const currentGames = freshData.games.length > 0 ? freshData.games : games
-      
-      // Находим игру и обновляем ее, используя актуальные данные из локального состояния
-      // Это гарантирует, что счет будет сохранен правильно
-      const updatedGames = currentGames.map(game => {
-        if (game.id === gameId) {
-          // Используем данные из локального состояния (актуальный счет)
-          return { 
-            ...localGame, 
-            pending: false 
-          }
-        }
-        return game
-      })
-      
-      // Если игры нет в freshData, добавляем ее из локального состояния
-      if (!currentGames.find(g => g.id === gameId)) {
-        updatedGames.push({ ...localGame, pending: false })
-      }
-      
-      // Обновляем состояние
-      setGames(updatedGames)
-      if (freshData.teams.length > 0) {
-        setTeams(freshData.teams)
-      }
-      
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
-      }
-      
-      // Сохраняем в Supabase
-      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
-      const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
+
+      showNotification(t('approveGame') + ' ✓', 'success')
     } catch (error) {
       console.error('Ошибка при утверждении игры:', error)
     } finally {
-      setIsSaving(false)
+      setIsApprovingGame(prev => {
+        const next = { ...prev }
+        delete next[gameId]
+        return next
+      })
     }
   }
 
@@ -710,29 +632,14 @@ function TournamentView() {
     
     setIsDeletingPendingGame(prev => ({ ...prev, [gameId]: true }))
     try {
-      // Загружаем свежие данные
-      const freshData = await loadData(false)
-      const currentGames = freshData.games.length > 0 ? freshData.games : games
+      // Optimistic UI update
+      setGames(prev => prev.filter(game => game.id !== gameId))
 
-      // Удаляем игру
-      const updatedGames = currentGames.filter(game => game.id !== gameId)
-
-      // Обновляем состояние
-      setGames(updatedGames)
-      if (freshData.teams.length > 0) {
-        setTeams(freshData.teams)
+      const { error } = await deleteGameInSupabase(gameId, tournamentId)
+      if (error) {
+        await loadData(false)
+        throw error
       }
-
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
-      }
-
-      // Сохраняем в Supabase
-      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
-      const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
       
       showNotification(t('deletePendingGame') + ' ✓', 'success')
     } catch (error) {
@@ -764,33 +671,19 @@ function TournamentView() {
     setShowDeleteAllPendingGamesModal(false)
     setIsDeletingAllPendingGames(true)
     try {
-      // Загружаем свежие данные
-      const freshData = await loadData(false)
-      const currentGames = freshData.games.length > 0 ? freshData.games : games
+      const pendingCount = games.filter(g => g.pending === true).length
 
-      // Удаляем все pending игры
-      const updatedGames = currentGames.filter(game => !game.pending || game.pending === false)
-      const deletedCount = currentGames.length - updatedGames.length
+      // Optimistic UI update
+      setGames(prev => prev.filter(game => game.pending !== true))
 
-      // Обновляем состояние
-      setGames(updatedGames)
-      if (freshData.teams.length > 0) {
-        setTeams(freshData.teams)
+      const { error } = await deleteGamesByPendingInSupabase(tournamentId, true)
+      if (error) {
+        await loadData(false)
+        throw error
       }
-
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
-      }
-
-      // Сохраняем в Supabase
-      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
-      const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
       
-      if (deletedCount > 0) {
-        showNotification(`${t('deletedPendingGames', { count: deletedCount })} ✓`, 'success')
+      if (pendingCount > 0) {
+        showNotification(`${t('deletedPendingGames', { count: pendingCount })} ✓`, 'success')
       } else {
         showNotification(t('noPendingGamesToDelete'), 'error')
       }
@@ -808,35 +701,47 @@ function TournamentView() {
   }
 
   // Обработчик изменения счета pending игры
-  const handleUpdatePendingGameScore = (gameId, teamType, delta) => {
-    // Устанавливаем флаг, чтобы предотвратить автосохранение
-    isUpdatingScoreRef.current = true
-    
-    // Обновляем счет только локально, без синхронизации с Supabase
-    const updatedGames = games.map(game => {
-      if (game.id === gameId) {
-        const newHomeScore = teamType === 'home' 
-          ? Math.max(0, (game.homeScore || 0) + delta)
-          : (game.homeScore || 0)
-        const newAwayScore = teamType === 'away'
-          ? Math.max(0, (game.awayScore || 0) + delta)
-          : (game.awayScore || 0)
-        return { ...game, homeScore: newHomeScore, awayScore: newAwayScore }
-      }
-      return game
+  const handleUpdatePendingGameScore = async (gameId, teamType, delta) => {
+    const snapshot = Array.isArray(gamesSnapshotRef.current) ? gamesSnapshotRef.current : []
+    const current = snapshot.find(g => g.id === gameId)
+    if (!current) return
+
+    const expectedHomeScore = current.homeScore || 0
+    const expectedAwayScore = current.awayScore || 0
+
+    // Optimistic UI update
+    const optimisticGames = snapshot.map(game => {
+      if (game.id !== gameId) return game
+      const nextHome =
+        teamType === 'home' ? Math.max(0, (game.homeScore || 0) + delta) : (game.homeScore || 0)
+      const nextAway =
+        teamType === 'away' ? Math.max(0, (game.awayScore || 0) + delta) : (game.awayScore || 0)
+      return { ...game, homeScore: nextHome, awayScore: nextAway }
     })
-    setGames(updatedGames)
-    
-    // Обновляем previousDataRef, чтобы предотвратить автосохранение
-    previousDataRef.current = {
-      teams: JSON.parse(JSON.stringify(teams)),
-      games: JSON.parse(JSON.stringify(updatedGames))
+    gamesSnapshotRef.current = optimisticGames
+    setGames(optimisticGames)
+
+    const { data, error } = await updateGameScoreDeltaInSupabase({
+      gameId,
+      tournamentId,
+      side: teamType,
+      delta,
+      expectedHomeScore,
+      expectedAwayScore
+    })
+
+    if (error) {
+      console.error('Ошибка обновления счёта:', error)
+      showNotification('Ошибка обновления счёта', 'error')
+      // best-effort resync
+      await loadData(false)
+      return
     }
-    
-    // Сбрасываем флаг после небольшой задержки
-    setTimeout(() => {
-      isUpdatingScoreRef.current = false
-    }, 100)
+
+    // If we got authoritative row back (especially on conflict), apply it
+    if (data?.id) {
+      setGames(prev => prev.map(g => (g.id === data.id ? { ...g, ...data } : g)))
+    }
   }
 
   const handleDeleteGameClick = (gameId) => {
@@ -858,29 +763,14 @@ function TournamentView() {
     
     setIsDeletingGame(prev => ({ ...prev, [gameId]: true }))
     try {
-      // Загружаем свежие данные
-      const freshData = await loadData(false)
-      const currentGames = freshData.games.length > 0 ? freshData.games : games
+      // Optimistic UI update
+      setGames(prev => prev.filter(game => game.id !== gameId))
 
-      // Удаляем игру
-      const updatedGames = currentGames.filter(game => game.id !== gameId)
-
-      // Обновляем состояние
-      setGames(updatedGames)
-      if (freshData.teams.length > 0) {
-        setTeams(freshData.teams)
+      const { error } = await deleteGameInSupabase(gameId, tournamentId)
+      if (error) {
+        await loadData(false)
+        throw error
       }
-
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
-      }
-
-      // Сохраняем в Supabase
-      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
-      const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
       
       showNotification(t('deletePendingGame') + ' ✓', 'success')
     } catch (error) {
@@ -903,31 +793,16 @@ function TournamentView() {
     setShowConfirmModal(false)
     setIsDeletingAllGames(true)
     try {
-      // Загружаем свежие данные из базы данных
-      const freshData = await loadData(false)
-      // Всегда используем freshData.games, чтобы получить все игры из базы данных
-      const currentGames = freshData.games || []
-      
-      // Удаляем только игры, где pending == false (оставляем pending игры)
-      const updatedGames = currentGames.filter(game => game.pending === true)
-      const deletedCount = currentGames.length - updatedGames.length
+      const deletedCount = games.filter(g => g.pending !== true).length
 
-      // Обновляем состояние
-      setGames(updatedGames)
-      if (freshData.teams.length > 0) {
-        setTeams(freshData.teams)
+      // Optimistic UI update: keep only pending games
+      setGames(prev => prev.filter(game => game.pending === true))
+
+      const { error } = await deleteNonPendingGamesInSupabase(tournamentId)
+      if (error) {
+        await loadData(false)
+        throw error
       }
-
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: JSON.parse(JSON.stringify(freshData.teams.length > 0 ? freshData.teams : teams)),
-        games: JSON.parse(JSON.stringify(updatedGames))
-      }
-
-      // Сохраняем в Supabase (оставляем только pending игры)
-      const currentTeams = freshData.teams.length > 0 ? freshData.teams : teams
-      const standings = calculateStandings(currentTeams, updatedGames)
-      await saveDataToSupabase(currentTeams, updatedGames, standings, tournamentId)
       
       if (deletedCount > 0) {
         showNotification(`Удалено игр: ${deletedCount} ✓`, 'success')
@@ -955,19 +830,16 @@ function TournamentView() {
     setShowDeleteAllTeamsModal(false)
     
     try {
-      // Удаляем все команды и игры
+      // Optimistic UI update: Удаляем все команды и игры
       setTeams([])
       setGames([])
-      
-      // Обновляем previousDataRef
-      previousDataRef.current = {
-        teams: [],
-        games: []
+
+      const { error } = await deleteAllTeamsInSupabase(tournamentId)
+      if (error) {
+        await loadData(false)
+        throw error
       }
-      
-      // Сохраняем в Supabase (пустые массивы)
-      const standings = []
-      await saveDataToSupabase([], [], standings, tournamentId)
+
       showNotification('Все команды удалены ✓', 'success')
     } catch (error) {
       console.error('Ошибка при удалении всех команд:', error)
