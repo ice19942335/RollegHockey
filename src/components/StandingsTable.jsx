@@ -15,8 +15,6 @@ function StandingsTable({ teams, games, tournamentName }) {
     return calculateStandings(teams, games)
   }, [teams, games])
 
-  if (standings.length === 0) return null
-
   // Detect when legend + scoring are side-by-side (same row).
   // This is more reliable than matchMedia if CSS breakpoints ever change.
   useEffect(() => {
@@ -71,6 +69,9 @@ function StandingsTable({ teams, games, tournamentName }) {
     }
     setIsScoringSystemExpanded(prev => !prev)
   }
+
+  // IMPORTANT: don't early-return before hooks (otherwise React hook order breaks)
+  if (standings.length === 0) return null
 
   const handleExportPdf = async () => {
     const exportRoot = document.querySelector('.pdf-export-root')
