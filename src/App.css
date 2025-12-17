@@ -456,11 +456,11 @@
   .navigation-container {
     flex-direction: column !important;
     align-items: center !important;
-    padding: 1rem;
+    padding: 1rem 1rem 1.25rem;
     gap: 0;
     flex-wrap: nowrap;
     position: relative;
-    min-height: 60px;
+    min-height: 66px;
     justify-content: flex-start;
   }
 
@@ -477,25 +477,35 @@
   }
 
   .nav-items-wrapper {
+    /* Overlay dropdown (avoid animating layout properties like max-height/margin-top) */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     width: 100% !important;
     gap: 0 !important;
-    margin-top: 3rem !important;
-    padding-top: 0 !important;
-    display: flex !important;
+    margin-top: 0 !important;
+    padding: 0.75rem 1rem 1rem;
     justify-content: center !important;
     flex: none !important;
-    max-height: 0;
-    overflow: hidden;
+    background: #333;
+    border-top: 2px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    transform-origin: top;
+    transform: translateY(-8px) scaleY(0.98);
     opacity: 0;
-    transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    pointer-events: none;
+    will-change: transform, opacity;
+    transition: transform 160ms ease, opacity 160ms ease;
   }
 
   .nav-items-wrapper.mobile-open {
-    max-height: 1000px;
+    transform: translateY(0) scaleY(1);
     opacity: 1;
-    margin-top: 3rem !important;
+    pointer-events: auto;
   }
 
   .nav-item {
@@ -550,11 +560,11 @@
   .navigation-container {
     flex-direction: column !important;
     align-items: center !important;
-    padding: 0.75rem;
+    padding: 0.75rem 0.75rem 1rem;
     gap: 0;
     flex-wrap: nowrap;
     position: relative;
-    min-height: 50px;
+    min-height: 58px;
     justify-content: flex-start;
   }
 
@@ -574,25 +584,35 @@
   }
 
   .nav-items-wrapper {
+    /* Overlay dropdown (avoid layout thrash + removes yellow gap) */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     width: 100% !important;
     gap: 0 !important;
-    margin-top: 2.5rem !important;
-    padding-top: 0 !important;
-    display: flex !important;
+    margin-top: 0 !important;
+    padding: 0.6rem 0.75rem 0.85rem;
     justify-content: center !important;
     flex: none !important;
-    max-height: 0;
-    overflow: hidden;
+    background: #333;
+    border-top: 2px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    transform-origin: top;
+    transform: translateY(-6px) scaleY(0.98);
     opacity: 0;
-    transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    pointer-events: none;
+    will-change: transform, opacity;
+    transition: transform 160ms ease, opacity 160ms ease;
   }
 
   .nav-items-wrapper.mobile-open {
-    max-height: 1000px;
+    transform: translateY(0) scaleY(1);
     opacity: 1;
-    margin-top: 2.5rem !important;
+    pointer-events: auto;
   }
 
   .nav-item {
@@ -2491,11 +2511,9 @@ body.pdf-exporting .pdf-export-root {
 
 @media (max-width: 768px) {
   body.mobile-menu-open {
-    padding-top: 0;
-  }
-
-  body.mobile-menu-open .app {
-    padding-top: calc(0.5rem + 250px); /* Extra space when mobile menu is open */
+    /* Allow page scrolling even with menu open */
+    overflow-y: auto;
+    touch-action: auto;
   }
 
   .app {
@@ -2992,11 +3010,8 @@ body.pdf-exporting .pdf-export-root {
 
 @media (max-width: 480px) {
   body.mobile-menu-open {
-    padding-top: 0;
-  }
-
-  body.mobile-menu-open .app {
-    padding-top: calc(0.25rem + 130px); /* Extra space when mobile menu is open */
+    overflow-y: auto;
+    touch-action: auto;
   }
 
   .app {

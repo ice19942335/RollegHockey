@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateStandings } from '../utils/calculateStats'
 import TeamLogo from './TeamLogo'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -7,13 +7,70 @@ function StandingsTable({ teams, games, tournamentName }) {
   const { t } = useLanguage()
   const [isLegendExpanded, setIsLegendExpanded] = useState(false)
   const [isScoringSystemExpanded, setIsScoringSystemExpanded] = useState(false)
+  const [isWideInfoLayout, setIsWideInfoLayout] = useState(false)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const exportCounterRef = useRef(0)
+  const legendContainerRef = useRef(null)
   const standings = useMemo(() => {
     return calculateStandings(teams, games)
   }, [teams, games])
 
   if (standings.length === 0) return null
+
+  // Detect when legend + scoring are side-by-side (same row).
+  // This is more reliable than matchMedia if CSS breakpoints ever change.
+  useEffect(() => {
+    const container = legendContainerRef.current
+    if (!container) return
+
+    const apply = () => {
+      const legend = container.querySelector('.legend-wrapper')
+      const scoring = container.querySelector('.scoring-system-wrapper')
+      if (!legend || !scoring) return
+      setIsWideInfoLayout(legend.offsetTop === scoring.offsetTop)
+    }
+
+    apply()
+    window.addEventListener('resize', apply)
+
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(apply) : null
+    if (ro) ro.observe(container)
+
+    return () => {
+      window.removeEventListener('resize', apply)
+      ro?.disconnect()
+    }
+  }, [])
+
+  // If we are in wide layout and states got out of sync (or only one was opened),
+  // force both to the same value so BOTH contents show/hide together.
+  useEffect(() => {
+    if (!isWideInfoLayout) return
+    if (isLegendExpanded === isScoringSystemExpanded) return
+    const next = isLegendExpanded || isScoringSystemExpanded
+    setIsLegendExpanded(next)
+    setIsScoringSystemExpanded(next)
+  }, [isWideInfoLayout, isLegendExpanded, isScoringSystemExpanded])
+
+  const toggleLegend = () => {
+    if (isWideInfoLayout) {
+      const next = !(isLegendExpanded || isScoringSystemExpanded)
+      setIsLegendExpanded(next)
+      setIsScoringSystemExpanded(next)
+      return
+    }
+    setIsLegendExpanded(prev => !prev)
+  }
+
+  const toggleScoringSystem = () => {
+    if (isWideInfoLayout) {
+      const next = !(isLegendExpanded || isScoringSystemExpanded)
+      setIsLegendExpanded(next)
+      setIsScoringSystemExpanded(next)
+      return
+    }
+    setIsScoringSystemExpanded(prev => !prev)
+  }
 
   const handleExportPdf = async () => {
     const exportRoot = document.querySelector('.pdf-export-root')
@@ -151,11 +208,11 @@ function StandingsTable({ teams, games, tournamentName }) {
           </tbody>
         </table>
       </div>
-      <div className="legend-container">
+      <div className="legend-container" ref={legendContainerRef}>
         <div className="legend-wrapper">
           <div 
             className="section-header-collapsible"
-            onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+            onClick={toggleLegend}
             style={{ cursor: 'pointer', userSelect: 'none' }}
           >
             <p><strong>{t('legend')}</strong></p>
@@ -183,7 +240,7 @@ function StandingsTable({ teams, games, tournamentName }) {
         <div className="scoring-system-wrapper">
           <div 
             className="section-header-collapsible"
-            onClick={() => setIsScoringSystemExpanded(!isScoringSystemExpanded)}
+            onClick={toggleScoringSystem}
             style={{ cursor: 'pointer', userSelect: 'none' }}
           >
             <p><strong>{t('scoringSystem')}</strong></p>
