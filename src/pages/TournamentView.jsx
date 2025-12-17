@@ -855,6 +855,21 @@ function TournamentView() {
 
   const openScoreboard = () => {
     if (selectedHomeTeam && selectedAwayTeam) {
+      // If there's already a pending game for these teams, bind the scoreboard to it
+      const linkedPendingGame = games.find(g => {
+        if (g?.pending !== true) return false
+        const h = String(g.homeTeamId)
+        const a = String(g.awayTeamId)
+        const selH = String(selectedHomeTeam)
+        const selA = String(selectedAwayTeam)
+        return (h === selH && a === selA) || (h === selA && a === selH)
+      })
+
+      if (linkedPendingGame) {
+        setPendingScoreboardGame(linkedPendingGame)
+      } else {
+        setPendingScoreboardGame(null)
+      }
       setShowScoreboard(true)
     }
   }
@@ -951,10 +966,10 @@ function TournamentView() {
               awayScore={gameToDisplay.awayScore || 0}
               gameType={gameToDisplay.gameType || 'regular'}
               onClose={closeScoreboard}
-              onIncrementHomeScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'home', 1)}
-              onDecrementHomeScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'home', -1)}
-              onIncrementAwayScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'away', 1)}
-              onDecrementAwayScore={() => handleUpdatePendingGameScore(pendingScoreboardGame.id, 'away', -1)}
+              onIncrementHomeScore={() => handleUpdatePendingGameScore(gameToDisplay.id, 'home', 1)}
+              onDecrementHomeScore={() => handleUpdatePendingGameScore(gameToDisplay.id, 'home', -1)}
+              onIncrementAwayScore={() => handleUpdatePendingGameScore(gameToDisplay.id, 'away', 1)}
+              onDecrementAwayScore={() => handleUpdatePendingGameScore(gameToDisplay.id, 'away', -1)}
             />
           )
         }
