@@ -40,6 +40,7 @@ function TournamentView() {
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const gamesSnapshotRef = useRef([])
+  const scoreSyncQueueRef = useRef(new Map())
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamLogo, setNewTeamLogo] = useState('🏒')
   const [newTeamColor, setNewTeamColor] = useState('#1e3c72')
@@ -183,6 +184,91 @@ function TournamentView() {
     gamesSnapshotRef.current = games
   }, [games])
 
+  const scheduleScoreSync = (gameId, delayMs = 500) => {
+    const key = String(gameId)
+    const queue = scoreSyncQueueRef.current
+    const existing = queue.get(key) || { homeDelta: 0, awayDelta: 0, timer: null, inFlight: false }
+
+    if (existing.timer) {
+      clearTimeout(existing.timer)
+    }
+
+    existing.timer = setTimeout(() => {
+      void flushScoreSync(key)
+    }, delayMs)
+
+    queue.set(key, existing)
+  }
+
+  const flushScoreSync = async (gameId) => {
+    const key = String(gameId)
+    const queue = scoreSyncQueueRef.current
+    const entry = queue.get(key)
+    if (!entry) return
+    if (entry.inFlight) return
+
+    const homeDelta = parseInt(entry.homeDelta) || 0
+    const awayDelta = parseInt(entry.awayDelta) || 0
+    if (homeDelta === 0 && awayDelta === 0) return
+
+    // capture and clear deltas for this flush (new clicks during inFlight will accumulate again)
+    entry.inFlight = true
+    entry.homeDelta = 0
+    entry.awayDelta = 0
+    queue.set(key, entry)
+
+    try {
+      const snapshot = Array.isArray(gamesSnapshotRef.current) ? gamesSnapshotRef.current : []
+      const current = snapshot.find(g => String(g.id) === key)
+      const currentHome = parseInt(current?.homeScore) || 0
+      const currentAway = parseInt(current?.awayScore) || 0
+
+      // expected DB values are the displayed values minus the deltas we haven't synced yet
+      const expectedHomeScore = currentHome - homeDelta
+      const expectedAwayScore = currentAway - awayDelta
+
+      if (homeDelta !== 0) {
+        const { error } = await updateGameScoreDeltaInSupabase({
+          gameId: key,
+          tournamentId,
+          side: 'home',
+          delta: homeDelta,
+          expectedHomeScore,
+          expectedAwayScore
+        })
+        if (error) throw error
+      }
+
+      if (awayDelta !== 0) {
+        const { error } = await updateGameScoreDeltaInSupabase({
+          gameId: key,
+          tournamentId,
+          side: 'away',
+          delta: awayDelta,
+          expectedHomeScore,
+          expectedAwayScore
+        })
+        if (error) throw error
+      }
+    } catch (e) {
+      console.error('Ошибка синхронизации счёта:', e)
+      showNotification('Ошибка синхронизации счёта', 'error')
+      await loadData(false)
+    } finally {
+      const latest = queue.get(key)
+      if (!latest) return
+      latest.inFlight = false
+      queue.set(key, latest)
+
+      // if more deltas accumulated while inFlight, schedule another flush
+      const pendingHome = parseInt(latest.homeDelta) || 0
+      const pendingAway = parseInt(latest.awayDelta) || 0
+      if (pendingHome !== 0 || pendingAway !== 0) {
+        scheduleScoreSync(key, 500)
+      }
+    }
+  }
+
   // Realtime: автоматически подтягиваем изменения игр/команд турнира
   useEffect(() => {
     if (!tournamentId) return
@@ -235,6 +321,17 @@ function TournamentView() {
 
         const game = normalizeGame(payload?.new)
         if (!game?.id) return
+        // If user has unsynced local clicks for this game, keep UI stable by applying pending deltas
+        const entry = scoreSyncQueueRef.current.get(String(game.id))
+        if (entry) {
+          const homeDelta = parseInt(entry.homeDelta) || 0
+          const awayDelta = parseInt(entry.awayDelta) || 0
+          if (homeDelta !== 0 || awayDelta !== 0) {
+            game.homeScore = Math.max(0, (parseInt(game.homeScore) || 0) + homeDelta)
+            game.awayScore = Math.max(0, (parseInt(game.awayScore) || 0) + awayDelta)
+          }
+        }
+
         setGames(prev => upsertById(prev, game))
       },
       onTeamChange: payload => {
@@ -706,9 +803,6 @@ function TournamentView() {
     const current = snapshot.find(g => g.id === gameId)
     if (!current) return
 
-    const expectedHomeScore = current.homeScore || 0
-    const expectedAwayScore = current.awayScore || 0
-
     // Optimistic UI update
     const optimisticGames = snapshot.map(game => {
       if (game.id !== gameId) return game
@@ -721,27 +815,14 @@ function TournamentView() {
     gamesSnapshotRef.current = optimisticGames
     setGames(optimisticGames)
 
-    const { data, error } = await updateGameScoreDeltaInSupabase({
-      gameId,
-      tournamentId,
-      side: teamType,
-      delta,
-      expectedHomeScore,
-      expectedAwayScore
-    })
-
-    if (error) {
-      console.error('Ошибка обновления счёта:', error)
-      showNotification('Ошибка обновления счёта', 'error')
-      // best-effort resync
-      await loadData(false)
-      return
-    }
-
-    // If we got authoritative row back (especially on conflict), apply it
-    if (data?.id) {
-      setGames(prev => prev.map(g => (g.id === data.id ? { ...g, ...data } : g)))
-    }
+    // Debounced DB sync (500ms)
+    const key = String(gameId)
+    const queue = scoreSyncQueueRef.current
+    const entry = queue.get(key) || { homeDelta: 0, awayDelta: 0, timer: null, inFlight: false }
+    if (teamType === 'home') entry.homeDelta = (parseInt(entry.homeDelta) || 0) + (parseInt(delta) || 0)
+    if (teamType === 'away') entry.awayDelta = (parseInt(entry.awayDelta) || 0) + (parseInt(delta) || 0)
+    queue.set(key, entry)
+    scheduleScoreSync(key, 500)
   }
 
   const handleDeleteGameClick = (gameId) => {
