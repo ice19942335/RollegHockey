@@ -2022,6 +2022,11 @@ body.pdf-exporting .btn-export-pdf {
   display: none !important;
 }
 
+/* PDF export: hide control buttons inside exported area */
+body.pdf-exporting .pdf-export-root button {
+  display: none !important;
+}
+
 body.pdf-exporting .add-team-section,
 body.pdf-exporting .round-generator-section,
 body.pdf-exporting .add-game-section {
@@ -2031,6 +2036,21 @@ body.pdf-exporting .add-game-section {
 /* Keep layout stable in export */
 body.pdf-exporting .pdf-export-root {
   background: white;
+  /* avoid accidental UI changes while exporting */
+  pointer-events: none;
+}
+
+/* PDF export: always show legend + scoring details (no collapse/animation) */
+body.pdf-exporting .legend-container .section-collapsible-content {
+  max-height: none !important;
+  opacity: 1 !important;
+  padding-top: 1rem !important;
+  padding-bottom: 0 !important;
+  transition: none !important;
+}
+
+body.pdf-exporting .legend-container .collapse-icon {
+  display: none !important;
 }
 
 .standings-table {

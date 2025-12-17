@@ -75,47 +75,89 @@ function StandingsTable({ teams, games, tournamentName }) {
   const handleExportPdf = async () => {
     const exportRoot = document.querySelector('.pdf-export-root')
     if (!exportRoot) return
+
+    const prevLegendExpanded = isLegendExpanded
+    const prevScoringExpanded = isScoringSystemExpanded
+
     setIsExportingPdf(true)
     try {
+      const nextFrame = () =>
+        new Promise(resolve =>
+          (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(resolve) : setTimeout(resolve, 0))
+        )
+
       // Даем React/браузеру отрисовать спиннер перед тяжёлой работой
-      await new Promise(resolve =>
-        (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(resolve) : setTimeout(resolve, 0))
-      )
+      await nextFrame()
 
       document.body.classList.add('pdf-exporting')
+
+      // На время экспорта разворачиваем легенду + систему очков (чтобы PDF был понятным)
+      // CSS в pdf-exporting отключает анимации, поэтому разворот происходит мгновенно.
+      setIsLegendExpanded(true)
+      setIsScoringSystemExpanded(true)
+      await nextFrame()
+
       const [{ default: html2canvas }, jspdfModule] = await Promise.all([
         import('html2canvas'),
         import('jspdf')
       ])
 
       const jsPDF = jspdfModule.jsPDF || jspdfModule.default
-      const canvas = await html2canvas(exportRoot, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true
-      })
-
-      const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
 
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
       const margin = 24
+      const contentWidth = pageWidth - margin * 2
+      const contentHeight = pageHeight - margin * 2
 
-      const imgWidth = pageWidth - margin * 2
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      // Важно: фиксируем текущий скролл, иначе html2canvas иногда даёт сдвиги
+      const scrollX = typeof window !== 'undefined' ? (window.scrollX || window.pageXOffset || 0) : 0
+      const scrollY = typeof window !== 'undefined' ? (window.scrollY || window.pageYOffset || 0) : 0
 
-      let y = margin
-      let remaining = imgHeight
+      const canvas = await html2canvas(exportRoot, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        // компенсируем текущий скролл окна
+        scrollX: -scrollX,
+        scrollY: -scrollY
+      })
 
-      // Рисуем одним большим изображением с переносом по страницам
-      while (remaining > 0) {
-        pdf.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight)
-        remaining -= (pageHeight - margin * 2)
-        if (remaining > 0) {
-          pdf.addPage()
-          y = margin - (imgHeight - remaining)
-        }
+      // Нарезаем один canvas на страницы. Это убирает перекрытия/дубли при "сдвиге" одной картинки.
+      const scaleToPdf = contentWidth / canvas.width
+      const pageHeightPx = Math.max(1, Math.floor(contentHeight / scaleToPdf))
+      const totalPages = Math.ceil(canvas.height / pageHeightPx)
+
+      for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+        const yPx = pageIndex * pageHeightPx
+        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - yPx)
+
+        const pageCanvas = document.createElement('canvas')
+        pageCanvas.width = canvas.width
+        pageCanvas.height = sliceHeightPx
+
+        const ctx = pageCanvas.getContext('2d')
+        if (!ctx) throw new Error('Canvas context not available')
+
+        ctx.drawImage(
+          canvas,
+          0,
+          yPx,
+          canvas.width,
+          sliceHeightPx,
+          0,
+          0,
+          canvas.width,
+          sliceHeightPx
+        )
+
+        const imgData = pageCanvas.toDataURL('image/png')
+        const sliceHeightPt = sliceHeightPx * scaleToPdf
+
+        if (pageIndex > 0) pdf.addPage()
+        // jsPDF v3: последний аргумент — compression ('FAST'|'MEDIUM'|'SLOW')
+        pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, sliceHeightPt, undefined, 'FAST')
       }
 
       exportCounterRef.current += 1
@@ -139,6 +181,13 @@ function StandingsTable({ teams, games, tournamentName }) {
     } catch (e) {
       console.error('PDF export failed:', e)
     } finally {
+      // Вернём UI в исходное состояние (без анимаций — пока pdf-exporting ещё активен)
+      setIsLegendExpanded(prevLegendExpanded)
+      setIsScoringSystemExpanded(prevScoringExpanded)
+      await new Promise(resolve =>
+        (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame(resolve) : setTimeout(resolve, 0))
+      )
+
       document.body.classList.remove('pdf-exporting')
       setIsExportingPdf(false)
     }
