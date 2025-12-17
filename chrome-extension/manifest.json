@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "RollegHockey Keep Alive",
+  "version": "1.0.0",
+  "description": "Автоматически открывает сайт RollegHockey для предотвращения засыпания Supabase на бесплатном плане",
+  "permissions": [
+    "alarms",
+    "tabs",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

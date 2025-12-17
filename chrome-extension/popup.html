@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RollegHockey Keep Alive</title>
+  <style>
+    body {
+      width: 350px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      margin: 0;
+    }
+    h2 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+    }
+    input[type="text"],
+    input[type="time"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: #4CAF50;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #45a049;
+    }
+    .btn-secondary {
+      background: #2196F3;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #0b7dda;
+    }
+    .btn-force {
+      background: #FF9800;
+      color: white;
+    }
+    .btn-force:hover {
+      background: #F57C00;
+    }
+    .hidden {
+      display: none;
+    }
+    .status {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      text-align: center;
+    }
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <h2>RollegHockey Keep Alive</h2>
+  
+  <div class="form-group">
+    <div class="checkbox-group">
+      <input type="checkbox" id="enabled" checked>
+      <label for="enabled">Включено</label>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="url">URL сайта:</label>
+    <input type="text" id="url" placeholder="https://ice19942335.github.io/RollegHockey/">
+  </div>
+
+  <div class="form-group">
+    <label for="scheduleMode">Режим расписания:</label>
+    <select id="scheduleMode">
+      <option value="daily">Ежедневно в указанное время</option>
+      <option value="interval">Каждые N часов</option>
+    </select>
+  </div>
+
+  <div class="form-group" id="dailyTimeGroup">
+    <label for="dailyTime">Время открытия:</label>
+    <input type="time" id="dailyTime" value="09:00">
+  </div>
+
+  <div class="form-group hidden" id="intervalHoursGroup">
+    <label for="intervalHours">Интервал (часы):</label>
+    <input type="number" id="intervalHours" min="1" max="168" value="24">
+  </div>
+
+  <div class="form-group">
+    <label for="closeAfterSeconds">Закрыть вкладку через (секунды, 0 = не закрывать):</label>
+    <input type="number" id="closeAfterSeconds" min="0" value="5">
+  </div>
+
+  <div class="form-group">
+    <div class="checkbox-group">
+      <input type="checkbox" id="openOnStartup" checked>
+      <label for="openOnStartup">Открывать при запуске браузера</label>
+    </div>
+  </div>
+
+  <div class="button-group">
+    <button class="btn-primary" id="saveBtn">Сохранить</button>
+    <button class="btn-secondary" id="runNowBtn">Запустить сейчас</button>
+  </div>
+
+  <div class="button-group">
+    <button class="btn-force" id="forceRunBtn">Force Run</button>
+  </div>
+
+  <div id="status" class="status hidden"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
