@@ -1,7 +1,7 @@
 // Default settings
 const DEFAULT_SETTINGS = {
   enabled: true,
-  url: 'https://ice19942335.github.io/RollegHockey/',
+  url: 'https://hockey.rolleg.eu/',
   scheduleMode: 'daily', // 'daily' or 'interval'
   dailyTime: '09:00',
   intervalHours: 24,
