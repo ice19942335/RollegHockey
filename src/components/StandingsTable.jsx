@@ -108,9 +108,10 @@ function StandingsTable({ teams, games, tournamentName }) {
 
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const margin = 24
-      const contentWidth = pageWidth - margin * 2
-      const contentHeight = pageHeight - margin * 2
+      const marginHorizontal = 24
+      const marginVertical = 0
+      const contentWidth = pageWidth - marginHorizontal * 2
+      const contentHeight = pageHeight - marginVertical * 2
 
       // Важно: фиксируем текущий скролл, иначе html2canvas иногда даёт сдвиги
       const scrollX = typeof window !== 'undefined' ? (window.scrollX || window.pageXOffset || 0) : 0
@@ -158,7 +159,7 @@ function StandingsTable({ teams, games, tournamentName }) {
 
         if (pageIndex > 0) pdf.addPage()
         // jsPDF v3: последний аргумент — compression ('FAST'|'MEDIUM'|'SLOW')
-        pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, sliceHeightPt, undefined, 'FAST')
+        pdf.addImage(imgData, 'PNG', marginHorizontal, marginVertical, contentWidth, sliceHeightPt, undefined, 'FAST')
       }
 
       exportCounterRef.current += 1
