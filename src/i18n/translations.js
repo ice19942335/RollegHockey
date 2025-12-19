@@ -1,5 +1,8 @@
 export const translations = {
   ru: {
+    // Page Title
+    pageTitle: 'Турнирная таблица по хоккею',
+    
     // Header
     headerTitle: '🏒 Турнирная таблица по хоккею',
     headerSubtitle: 'Управление командами, играми и результатами турнира',
@@ -187,6 +190,9 @@ export const translations = {
     addAllTeams: 'Добавить все команды',
   },
   lv: {
+    // Page Title
+    pageTitle: 'Hokeja turnīra tabula',
+    
     // Header
     headerTitle: '🏒 Hokeja turnīra tabula',
     headerSubtitle: 'Komandu, spēļu un turnīra rezultātu pārvaldība',

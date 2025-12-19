@@ -3,10 +3,15 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { useAdmin } from '../contexts/AdminContext'
 
 function Header() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { enableAdmin } = useAdmin()
   const [clickCount, setClickCount] = useState(0)
   const clickTimeoutRef = useRef(null)
+
+  useEffect(() => {
+    // Устанавливаем заголовок страницы в зависимости от языка
+    document.title = t('pageTitle')
+  }, [language, t])
 
   useEffect(() => {
     // Очищаем таймер при размонтировании

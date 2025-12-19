@@ -15,12 +15,26 @@ export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
     // Загружаем сохраненный язык из localStorage или используем латышский по умолчанию
     const savedLanguage = localStorage.getItem('appLanguage')
-    return savedLanguage && translations[savedLanguage] ? savedLanguage : 'lv'
+    const initialLanguage = savedLanguage && translations[savedLanguage] ? savedLanguage : 'lv'
+    
+    // Устанавливаем заголовок сразу при инициализации
+    const title = translations[initialLanguage]?.pageTitle || translations.lv.pageTitle
+    if (title && typeof document !== 'undefined') {
+      document.title = title
+    }
+    
+    return initialLanguage
   })
 
   useEffect(() => {
     // Сохраняем выбранный язык в localStorage
     localStorage.setItem('appLanguage', language)
+    
+    // Обновляем заголовок страницы в зависимости от языка
+    const title = translations[language]?.pageTitle || translations.lv.pageTitle
+    if (title) {
+      document.title = title
+    }
   }, [language])
 
   const t = (key, params = {}) => {
